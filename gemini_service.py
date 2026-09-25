@@ -107,26 +107,47 @@ def generate_reply(user_message: str, chat_history: list = None) -> str:
 
 def fallback_rule_based_reply(user_message: str) -> str:
     """
-    ระบบตอบกลับสำรองกรณีไม่มี API Key หรือ AI ขัดข้อง
+    ระบบตอบกลับสำรองกรณีไม่มี API Key หรือ AI ขัดข้องชั่วคราว
     """
     msg = user_message.lower()
     
-    if any(w in msg for w in ["ราคา", "ห้องพัก", "มีห้อง", "room", "price", "ว่าง"]):
-        room_list = "\n".join([f"✨ {r['name']}\n   เริ่มต้น {r['price_starting']} {r['unit']}" for r in HOTEL_INFO["rooms"]])
+    if any(w in msg for w in ["ประชุม", "สัมมนา", "จัดเลี้ยง", "meeting", "event", "hall"]):
         return (
-            f"สวัสดีค่ะ ยินดีต้อนรับสู่ {HOTEL_INFO['name_th']} ค่ะ 🏨\n\n"
-            f"ประเภทห้องพักและราคาเริ่มต้น:\n{room_list}\n\n"
-            f"ต้องการเข้าพักวันที่เท่าไหร่ และพักกี่ท่าน สามารถแจ้งน้องไอได้เลยนะคะ 😊"
+            f"🏨 บริการห้องประชุมสัมมนาและจัดเลี้ยง {HOTEL_INFO['name_th']} ค่ะ ✨\n\n"
+            f"• มีห้องประชุมทั้งหมด {HOTEL_INFO['meeting_rooms']['total_rooms']}\n"
+            f"• {HOTEL_INFO['meeting_rooms']['max_capacity']}\n"
+            f"• พร้อมสิ่งอำนวยความสะดวก โปรเจคเตอร์ เครื่องเสียง และอาหารว่าง/เบรก\n\n"
+            f"📞 สอบถามข้อมูลเพิ่มเติมหรือขอใบเสนอราคา:\n"
+            f"โทร: {HOTEL_INFO['contact']['phone']}\n"
+            f"LINE OA: {HOTEL_INFO['contact']['line_oa']}"
+        )
+        
+    elif any(w in msg for w in ["อาหารเช้า", "breakfast", "บุฟเฟ่", "บุฟเฟต์", "กินข้าว"]):
+        return (
+            f"🍳 ข้อมูลอาหารเช้า {HOTEL_INFO['name_th']} ค่ะ\n\n"
+            f"• บริการแบบ: {HOTEL_INFO['breakfast_info']['type']}\n"
+            f"• ห้อง Deluxe และ Grand Deluxe: รวมอาหารเช้าฟรี 2-4 ท่านตามประเภทห้องพักค่ะ\n"
+            f"• ห้อง Superior: สามารถซื้อเพิ่มพร้อมห้องพักเพียง {HOTEL_INFO['breakfast_info']['price_with_room']} (ซื้อหลังจอง {HOTEL_INFO['breakfast_info']['price_after_booking']})\n\n"
+            f"สอบถามเพิ่มเติมโทร: {HOTEL_INFO['contact']['phone']} ได้เลยนะคะ 😊"
+        )
+
+    elif any(w in msg for w in ["ราคา", "ห้องพัก", "มีห้อง", "room", "price", "ว่าง", "เตียง"]):
+        room_list = "\n".join([
+            f"✨ {r['name']} ({r['size']})\n   ราคา {r['price_starting']} {r['unit']}\n   ({r['breakfast']})"
+            for r in HOTEL_INFO["rooms"]
+        ])
+        return (
+            f"สวัสดีค่ะ ยินดีต้อนรับสู่ {HOTEL_INFO['name_th']} ค่ะ 🏨✨\n\n"
+            f"ประเภทห้องพักและราคา:\n{room_list}\n\n"
+            f"ต้องการเข้าพักวันที่เท่าไหร่ และพักกี่ท่าน สามารถแจ้งน้องไอหรือโทรจองที่ {HOTEL_INFO['contact']['phone']} ได้เลยนะคะ 😊"
         )
     
-    elif any(w in msg for w in ["ที่ตั้ง", "แผนที่", "อยู่แถวไหน", "พิกัด", "ทางไป", "map", "location"]):
+    elif any(w in msg for w in ["ที่ตั้ง", "แผนที่", "อยู่แถวไหน", "พิกัด", "ทางไป", "map", "location", "โลตัส", "โนนม่วง"]):
         return (
             f"📍 ที่ตั้ง {HOTEL_INFO['name_th']}\n"
             f"{HOTEL_INFO['location']['address']}\n\n"
-            f"🚗 สถานที่ใกล้เคียง:\n"
-            f"- มหาวิทยาลัยขอนแก่น (10 นาที)\n"
-            f"- สนามบินขอนแก่น (10-15 นาที)\n"
-            f"- บึงหนองโคตร (5 นาที)\n\n"
+            f"🚗 สถานที่ใกล้เคียง: เทสโก้ โลตัส โนนม่วง (โลตัส ขอนแก่น 3), ม.ขอนแก่น, รพ.ศรีนครินทร์\n\n"
+            f"🗺️ แผนที่โรงแรม (Google Maps):\n{HOTEL_INFO['location']['google_maps_url']}\n\n"
             f"สอบถามเส้นทางโทร: {HOTEL_INFO['contact']['phone']} ได้ตลอด 24 ชม. ค่ะ"
         )
         
@@ -135,20 +156,22 @@ def fallback_rule_based_reply(user_message: str) -> str:
             f"🕒 เวลาเช็คอิน - เช็คเอาท์ ของโรงแรมค่ะ\n\n"
             f"👉 เช็คอิน: {HOTEL_INFO['policies']['check_in']}\n"
             f"👉 เช็คเอาท์: {HOTEL_INFO['policies']['check_out']}\n"
-            f"👉 ล็อบบี้เปิดบริการ 24 ชั่วโมงค่ะ เข้าพักดึกได้สบายใจเลยนะคะ ✨"
+            f"👉 แผนกต้อนรับเปิดบริการตลอด 24 ชั่วโมงค่ะ เข้าพักเวลาไหนก็สะดวกสบาย ✨"
         )
         
-    elif any(w in msg for w in ["เบอร์", "ติดต่อ", "โทร", "call", "line", "แอดไลน์"]):
+    elif any(w in msg for w in ["เบอร์", "ติดต่อ", "โทร", "call", "line", "แอดไลน์", "เจ้าหน้าที่"]):
         return (
             f"📞 ช่องทางการติดต่อ {HOTEL_INFO['name_th']} ค่ะ\n\n"
             f"☎️ โทร: {HOTEL_INFO['contact']['phone']}\n"
-            f"💬 Line OA: {HOTEL_INFO['contact']['line_oa']}\n"
+            f"💬 LINE OA: {HOTEL_INFO['contact']['line_oa']}\n"
+            f"📍 แผนที่: {HOTEL_INFO['location']['google_maps_url']}\n\n"
             f"ยินดีให้บริการตลอด 24 ชั่วโมงค่ะ 😊"
         )
         
     else:
         return (
             f"สวัสดีค่ะ ยินดีต้อนรับสู่ {HOTEL_INFO['name_th']} ค่ะ 🏨✨\n\n"
-            f"น้องไอยินดีให้บริการค่ะ คุณลูกค้าสามารถสอบถามข้อมูลห้องพัก, ราคา, ที่ตั้ง, หรือติดต่อสำรองห้องพักได้เลยนะคะ 😊\n\n"
-            f"☎️ โทรด่วน: {HOTEL_INFO['contact']['phone']}"
+            f"น้องไอยินดีให้บริการค่ะ คุณลูกค้าสามารถสอบถามข้อมูลห้องพัก, ราคา, อาหารเช้า, ห้องประชุม, หรือติดต่อจองห้องพักได้เลยนะคะ 😊\n\n"
+            f"☎️ โทรด่วน: {HOTEL_INFO['contact']['phone']}\n"
+            f"💬 LINE OA: {HOTEL_INFO['contact']['line_oa']}"
         )

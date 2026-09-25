@@ -187,3 +187,16 @@ def send_superior_photos(recipient_id: str):
     for url in photo_urls:
         send_image_message(recipient_id, url)
 
+
+def send_grand_deluxe_triple_photos(recipient_id: str):
+    """ส่งชุดรูปภาพของห้อง Grand Deluxe Triple Room (พัก 3 ท่าน 4 รูป)"""
+    photo_urls = [
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/grand_deluxe_triple_1.jpg",
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/grand_deluxe_triple_2.jpg",
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/grand_deluxe_triple_3.jpg",
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/grand_deluxe_triple_dressing.jpg"
+    ]
+    for url in photo_urls:
+        send_image_message(recipient_id, url)
+
+

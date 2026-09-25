@@ -129,7 +129,14 @@ def process_user_message(sender_id: str, message_text: str):
     # 6. หากลูกค้าถามหารูปภาพห้องพัก ให้ส่งรูปจริงประกอบไปด้วย
     lower_text = message_text.lower()
     if any(w in lower_text for w in ["รูป", "ภาพ", "photo", "picture", "ดูห้อง", "หน้าตาห้อง", "ห้องเป็นยังไง"]):
-        facebook_service.send_superior_photos(sender_id)
+        if any(w in lower_text for w in ["3 ท่าน", "สามท่าน", "grand deluxe", "แกรนด์", "triple", "1600", "ครอบครัว"]):
+            facebook_service.send_grand_deluxe_triple_photos(sender_id)
+        elif any(w in lower_text for w in ["superior", "สุพีเรีย", "750", "28"]):
+            facebook_service.send_superior_photos(sender_id)
+        else:
+            facebook_service.send_superior_photos(sender_id)
+            facebook_service.send_grand_deluxe_triple_photos(sender_id)
+
 
 
 

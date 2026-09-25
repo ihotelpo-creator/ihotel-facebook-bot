@@ -125,7 +125,7 @@ HOTEL_INFO = {
             "bed_type": "เตียง King Size พรีเมียม",
             "breakfast": "รวมอาหารเช้าบุฟเฟต์ 2 ท่าน",
             "highlights": "มีห้องแต่งตัวในตัว, ชุดกาแฟ",
-            "image_url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600"
+            "image_url": "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/grand_deluxe_triple_3.jpg"
         },
         {
             "id": "grand_deluxe_triple",
@@ -138,7 +138,7 @@ HOTEL_INFO = {
             "bed_type": "เตียงสำหรับ 3 ท่าน",
             "breakfast": "รวมอาหารเช้าบุฟเฟต์ 3 ท่าน",
             "highlights": "มีห้องแต่งตัวในตัว, ชุดกาแฟ",
-            "image_url": "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600"
+            "image_url": "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/grand_deluxe_triple_1.jpg"
         },
         {
             "id": "grand_deluxe_quad",
@@ -151,7 +151,7 @@ HOTEL_INFO = {
             "bed_type": "เตียงสำหรับ 4 ท่าน",
             "breakfast": "รวมอาหารเช้าบุฟเฟต์ 4 ท่าน",
             "highlights": "มีห้องแต่งตัวในตัว, ชุดกาแฟ",
-            "image_url": "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600"
+            "image_url": "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/grand_deluxe_triple_2.jpg"
         }
     ],
     

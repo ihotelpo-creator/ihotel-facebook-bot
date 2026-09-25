@@ -1,0 +1,232 @@
+# -*- coding: utf-8 -*-
+"""
+I Hotel Khonkaen - Facebook Messenger Webhook Server
+รองรับการรับ-ส่งข้อความ, Webhook Verification, AI Reply (Gemini), และ Quick Replies
+"""
+
+import os
+import sys
+import json
+import logging
+from typing import Dict, List
+
+# โหลด .env หากมี python-dotenv
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+from hotel_data import HOTEL_INFO
+import gemini_service
+import facebook_service
+
+# ตั้งค่า Logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+logger = logging.getLogger("IHotelBot")
+
+# เก็บประวัติการแชทชั่วคราวใน Memory (sender_id -> list of messages)
+chat_sessions: Dict[str, List[dict]] = {}
+
+VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "ihotel_khonkaen_secure_token_2026")
+PORT = int(os.getenv("PORT", "8000"))
+HOST = os.getenv("HOST", "0.0.0.0")
+
+
+def handle_payload_action(sender_id: str, payload: str):
+    """จัดการเมื่อผู้ใช้กดปุ่ม Quick Reply หรือปุ่มบน Card"""
+    logger.info(f"รับ Payload จาก User {sender_id}: {payload}")
+    
+    if payload == "QR_ROOMS_AND_PRICES":
+        facebook_service.send_text_message(sender_id, "🏨 ด้านล่างนี้คือประเภทห้องพักและราคาของ I Hotel Khonkaen ค่ะ:")
+        facebook_service.send_room_carousel(sender_id)
+        
+    elif payload == "QR_LOCATION_MAP":
+        location_msg = (
+            f"📍 แผนที่และการเดินทางมายัง {HOTEL_INFO['name_th']}\n\n"
+            f"ที่อยู่: {HOTEL_INFO['location']['address']}\n\n"
+            f"🚗 สถานที่สำคัญใกล้เคียง:\n"
+            f"• สนามบินขอนแก่น (10-15 นาที)\n"
+            f"• มหาวิทยาลัยขอนแก่น (10 นาที)\n"
+            f"• บึงหนองโคตร (5-7 นาที)\n"
+            f"• เซ็นทรัลพลาซา ขอนแก่น (12 นาที)\n\n"
+            f"☎️ หากเดินทางไม่ถูก โทรสอบถามเส้นทางได้ที่: {HOTEL_INFO['contact']['phone']}"
+        )
+        facebook_service.send_text_message(sender_id, location_msg)
+        
+    elif payload == "QR_CHECKIN_INFO":
+        checkin_msg = (
+            f"🕒 ข้อมูลเวลาเช็คอิน - เช็คเอาท์ ค่ะ\n\n"
+            f"👉 เช็คอินได้ตั้งแต่: {HOTEL_INFO['policies']['check_in']}\n"
+            f"👉 เช็คเอาท์ก่อน: {HOTEL_INFO['policies']['check_out']}\n"
+            f"👉 แผนกต้อนรับบริการตลอด 24 ชม. ไม่ว่าจะเดินทางมาถึงกี่โมงก็มีเจ้าหน้าที่คอยต้อนรับค่ะ ✨"
+        )
+        facebook_service.send_text_message(sender_id, checkin_msg)
+        
+    elif payload == "QR_AMENITIES_BREAKFAST":
+        amenities_list = "\n".join([f"✨ {a}" for a in HOTEL_INFO["amenities"][:6]])
+        amenities_msg = (
+            f"🍳 สิ่งอำนวยความสะดวกและบริการของโรงแรม:\n\n"
+            f"{amenities_list}\n\n"
+            f"☕ มีมุมชากาแฟ โอวัลติน และขนมปังบริการฟรีบริเวณล็อบบี้ช่วงเช้าค่ะ"
+        )
+        facebook_service.send_text_message(sender_id, amenities_msg)
+        
+    elif payload == "QR_CONTACT_STAFF":
+        contact_msg = (
+            f"📞 ช่องทางการติดต่อเจ้าหน้าที่ {HOTEL_INFO['name_th']}\n\n"
+            f"☎️ โทร: {HOTEL_INFO['contact']['phone']}\n"
+            f"💬 Line OA: {HOTEL_INFO['contact']['line_oa']}\n"
+            f"📍 ที่ตั้ง: {HOTEL_INFO['location']['address']}\n\n"
+            f"สามารถพิมพ์คำถามหรือแจ้งเรื่องที่ต้องการให้ช่วยเหลือไว้ในแชทนี้ได้เลยนะคะ น้องไอและทีมงานยินดีดูแลค่ะ 😊"
+        )
+        facebook_service.send_text_message(sender_id, contact_msg)
+        
+    elif payload.startswith("BOOK_ROOM_"):
+        room_id = payload.replace("BOOK_ROOM_", "")
+        room_name = next((r["name"] for r in HOTEL_INFO["rooms"] if r["id"] == room_id), "ห้องพัก")
+        booking_prompt = (
+            f"ยินดีเลยค่ะสำหรับการจองห้องพัก {room_name} 🛏️✨\n\n"
+            f"รบกวนคุณลูกค้าแจ้งข้อมูลดังนี้ได้เลยนะคะ:\n"
+            f"1. วันที่เข้าพัก และ วันที่เช็คเอาท์\n"
+            f"2. จำนวนผู้เข้าพัก (ผู้ใหญ่ / เด็ก)\n"
+            f"3. ชื่อและเบอร์โทรศัพท์สำหรับติดต่อกลับ\n\n"
+            f"หรือโทรจองด่วนได้ที่ ☎️ {HOTEL_INFO['contact']['phone']} ค่ะ"
+        )
+        facebook_service.send_text_message(sender_id, booking_prompt)
+        
+    else:
+        reply = gemini_service.generate_reply(payload)
+        facebook_service.send_text_message(sender_id, reply)
+
+
+def process_user_message(sender_id: str, message_text: str):
+    """ประมวลผลข้อความที่ลูกค้าพิมพ์ส่งมา"""
+    logger.info(f"ข้อความจาก User [{sender_id}]: {message_text}")
+    
+    # 1. แจ้งเตือนสถานะอ่านแล้ว & กำลังพิมพ์
+    facebook_service.mark_seen(sender_id)
+    facebook_service.send_typing_indicator(sender_id, is_typing=True)
+    
+    # 2. บันทึกประวัติการแชท
+    if sender_id not in chat_sessions:
+        chat_sessions[sender_id] = []
+    
+    chat_sessions[sender_id].append({"sender": "user", "text": message_text})
+    
+    # 3. ให้ Gemini AI ช่วยประมวลผลคำตอบ
+    reply = gemini_service.generate_reply(message_text, chat_sessions[sender_id])
+    
+    # 4. บันทึกคำตอบกลับ
+    chat_sessions[sender_id].append({"sender": "bot", "text": reply})
+    
+    # 5. ส่งข้อความกลับหาผู้ใช้
+    facebook_service.send_text_message(sender_id, reply, with_quick_replies=True)
+
+
+# =========================================================================
+# FastAPI Server Implementation
+# =========================================================================
+try:
+    from fastapi import FastAPI, Request, Response, Query
+    from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse
+    
+    app = FastAPI(title="I Hotel Khonkaen Facebook Bot", version="1.0.0")
+
+    @app.get("/", response_class=HTMLResponse)
+    async def index():
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>{HOTEL_INFO['name_th']} - Facebook Bot</title>
+            <style>
+                body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; background: #f0f2f5; }}
+                .card {{ background: white; max-width: 600px; margin: auto; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }}
+                h1 {{ color: #1877f2; margin-top: 0; }}
+                .status {{ display: inline-block; padding: 6px 12px; background: #e7f3ff; color: #1877f2; border-radius: 20px; font-weight: bold; margin-bottom: 20px; }}
+                .code {{ background: #282c34; color: #61afef; padding: 12px; border-radius: 8px; font-family: monospace; overflow-x: auto; }}
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <h1>🏨 {HOTEL_INFO['name_th']}</h1>
+                <div class="status">🟢 Facebook Webhook Server is Online</div>
+                <p>ระบบบอทสำหรับตอบ Facebook Messenger ของโรงแรมพร้อมทำงานแล้ว</p>
+                <h3>📌 ข้อมูลสำหรับตั้งค่า Webhook บน Meta for Developers:</h3>
+                <ul>
+                    <li><strong>Callback URL:</strong> <code>https://YOUR_DOMAIN/webhook</code></li>
+                    <li><strong>Verify Token:</strong> <code>{VERIFY_TOKEN}</code></li>
+                </ul>
+                <p>AI Engine: <strong>Gemini 1.5 Flash (Google AI)</strong></p>
+            </div>
+        </body>
+        </html>
+        """
+
+    @app.get("/webhook")
+    async def verify_webhook(
+        hub_mode: str = Query(None, alias="hub.mode"),
+        hub_verify_token: str = Query(None, alias="hub.verify_token"),
+        hub_challenge: str = Query(None, alias="hub.challenge")
+    ):
+        """Facebook Webhook Verification"""
+        logger.info(f"ได้รับ Webhook Verification Request: mode={hub_mode}, token={hub_verify_token}")
+        
+        if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
+            logger.info("✅ ยืนยัน Webhook Token สำเร็จ!")
+            return PlainTextResponse(content=hub_challenge, status_code=200)
+            
+        logger.warning("❌ ยืนยัน Webhook Token ไม่ถูกต้อง!")
+        return Response(content="Verification token mismatch", status_code=403)
+
+    @app.post("/webhook")
+    async def handle_webhook(request: Request):
+        """รับ Events จาก Facebook Messenger"""
+        body = await request.json()
+        logger.info(f"ได้รับ Webhook Event: {json.dumps(body, ensure_ascii=False)}")
+        
+        if body.get("object") == "page":
+            for entry in body.get("entry", []):
+                for messaging_event in entry.get("messaging", []):
+                    sender_id = messaging_event.get("sender", {}).get("id")
+                    
+                    if not sender_id:
+                        continue
+                        
+                    # กรณีเป็นข้อความ Text ทั่วไป
+                    if "message" in messaging_event:
+                        msg_obj = messaging_event["message"]
+                        
+                        # ตรวจสอบว่าเป็นการกดปุ่ม Quick Reply หรือไม่
+                        if "quick_reply" in msg_obj:
+                            payload = msg_obj["quick_reply"].get("payload")
+                            handle_payload_action(sender_id, payload)
+                        elif "text" in msg_obj:
+                            text = msg_obj["text"]
+                            process_user_message(sender_id, text)
+                            
+                    # กรณีเป็นการกดปุ่ม Postback (เช่น ปุ่มบน Card หรือ Get Started)
+                    elif "postback" in messaging_event:
+                        payload = messaging_event["postback"].get("payload")
+                        handle_payload_action(sender_id, payload)
+                        
+            return JSONResponse(content={"status": "EVENT_RECEIVED"}, status_code=200)
+            
+        return Response(content="Not Found", status_code=404)
+
+except ImportError:
+    app = None
+
+
+if __name__ == "__main__":
+    if app:
+        import uvicorn
+        logger.info(f"กำลังเริ่มระบบ Server ที่ http://{HOST}:{PORT}")
+        uvicorn.run("main:app", host=HOST, port=PORT, reload=True)
+    else:
+        logger.error("โปรดติดตั้ง dependencies: pip install -r requirements.txt")

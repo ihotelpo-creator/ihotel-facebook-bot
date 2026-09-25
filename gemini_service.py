@@ -20,15 +20,24 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
 
 
 SYSTEM_PROMPT = f"""
-คุณคือ "น้องไอ" (Nong I) ผู้ช่วยและพนักงานต้อนรับเสมือนจริงของ {HOTEL_INFO['name_th']}
-หน้าที่ของคุณคือบริการต้อนรับ ให้ข้อมูลห้องพัก ราคา สิ่งอำนวยความสะดวก การเดินทาง และช่วยเหลือลูกค้าที่สอบถามผ่าน Facebook Messenger
+คุณคือ "น้องไอ" (Nong I) พนักงานต้อนรับเสมือนจริงของ {HOTEL_INFO['name_th']}
+หน้าที่ของคุณคือให้ข้อมูลห้องพัก ราคา อาหารเช้า ระยะทางการเดินทาง ห้องประชุม และตอบคำถามลูกค้าผ่าน Facebook Messenger อย่างเป็นมิตร
 
-กฎการตอบคำถาม:
-1. บุคลิกภาพ: สุภาพ อบอุ่น เป็นมิตร กระตือรือร้นในการให้บริการ พูดจาไพเราะ (ลงท้ายด้วย "ค่ะ" เสมอ)
-2. ข้อมูลต้องถูกต้อง: ยึดตามข้อมูลโรงแรมที่กำหนดให้อย่างเคร่งครัด ห้ามแต่งเติมราคาหรือเงื่อนไขที่ไม่มีจริง
-3. กระชับ ชัดเจน: ตอบให้เข้าใจง่าย มีการแบ่งบรรทัด ใช้อิโมจิ (เช่น 🏨, 🛏️, 📍, ✨, 📞) ประกอบให้อ่านง่าย สบายตา
-4. การจองห้องพัก (สำคัญที่สุด): การจองห้องพักทุกประเภท ลูกค้าจะต้องดำเนินการจองผ่าน LINE OA: @ihotelkk เท่านั้น (คลิกลิงก์: https://line.me/R/ti/p/@ihotelkk หรือค้นหาไอดี @ihotelkk ใน LINE) เมื่อลูกค้าแสดงความสนใจจองห้องพัก หรือถามวิธีการจอง ให้แนะนำและส่งลิงก์ LINE OA: @ihotelkk ให้ลูกค้าไปจองผ่าน LINE ทันที
-5. ปัญหาพิเศษ/ติดต่อคน: หากลูกค้าสอบถามเรื่องที่ไม่ทราบแน่ชัด, ขอลดราคาพิเศษ, ขอใบกำกับภาษี, หรือต้องการคุยกับเจ้าหน้าที่ ให้แจ้งเบอร์โทรติดต่อ {HOTEL_INFO['contact']['phone']} หรือ LINE OA: {HOTEL_INFO['contact']['line_oa']}
+📌 กฎเหล็กการตอบคำถาม:
+1. บุคลิกภาพ: สุภาพ น่ารัก อบอุ่น เป็นกันเอง ลงท้ายด้วย "ค่ะ" เสมอ
+2. สั้น กระชับ ตรงประเด็น: ตอบให้เข้าใจง่ายทันที ไม่พิมพ์เป็นเรียงความยาวๆ ใช้อิโมจิ (🏨, 🛏️, 📍, 🍳, ✨, 🚗, 📞) และเว้นบรรทัดให้อ่านง่าย
+3. หลากหลายอย่างเป็นธรรมชาติ: ปรับเปลี่ยนรูปแบบคำทักทายและประโยคตอบรับให้เป็นธรรมชาติ ไม่ตอบแบบหุ่นยนต์ท่องจำ
+4. ข้อมูลถูกต้องแม่นยำ:
+   - เวลาอาหารเช้าบุฟเฟต์: 06:30 - 10:00 น.
+   - ระยะทางสถานที่สำคัญ:
+     • โลตัส โนนม่วง: 1-2 นาที (~500 ม.)
+     • มหาวิทยาลัยขอนแก่น (มข.): 5-10 นาที (~3-4 กม.)
+     • โรงพยาบาลศรีนครินทร์: 8-10 นาที (~4-5 กม.)
+     • เซ็นทรัล แคมปัส (Central Campus): 5-7 นาที (~3-4 กม.)
+     • เซ็นทรัลพลาซา ขอนแก่น: 12-15 นาที (~7-8 กม.)
+     • สนามบินนานาชาติขอนแก่น: 15-20 นาที (~10-12 กม.)
+5. การจองห้องพัก (สำคัญที่สุด): การจองห้องพักทุกประเภท ลูกค้าจะต้องดำเนินการจองผ่าน LINE OA: @ihotelkk เท่านั้น (คลิก: https://line.me/R/ti/p/@ihotelkk) เมื่อลูกค้าต้องการจองห้องพักหรือสอบถามการจอง ให้แนะนำและส่งลิงก์ LINE OA ให้ลูกค้าทันที
+6. ติดต่อเจ้าหน้าที่ / เรื่องพิเศษ: โทร {HOTEL_INFO['contact']['phone']} หรือ LINE OA: @ihotelkk
 
 --- ข้อมูลสารสนเทศของโรงแรม ---
 {get_hotel_knowledge_prompt()}
@@ -68,8 +77,8 @@ def generate_reply(user_message: str, chat_history: list = None) -> str:
         },
         "contents": contents,
         "generationConfig": {
-            "temperature": 0.5,
-            "maxOutputTokens": 600,
+            "temperature": 0.6,
+            "maxOutputTokens": 500,
             "topP": 0.95
         }
     }
@@ -102,74 +111,93 @@ def generate_reply(user_message: str, chat_history: list = None) -> str:
 
 def fallback_rule_based_reply(user_message: str) -> str:
     """
-    ระบบตอบกลับสำรองกรณีไม่มี API Key หรือ AI ขัดข้องชั่วคราว
+    ระบบตอบกลับสำรองกรณีไม่มี API Key หรือ AI ขัดข้องชั่วคราว (สั้น กระชับ ชัดเจน)
     """
     msg = user_message.lower()
     
-    if any(w in msg for w in ["ประชุม", "สัมมนา", "จัดเลี้ยง", "meeting", "event", "hall"]):
+    # สอบถามระยะทาง / สถานที่ใกล้เคียง
+    if any(w in msg for w in ["ห่าง", "กี่กิโล", "กี่นาที", "มข", "ศรีนครินทร์", "เซ็นทรัล", "แคมปัส", "สนามบิน", "ไกลไหม", "เดินทาง"]):
         return (
-            f"🏨 บริการห้องประชุมสัมมนาและจัดเลี้ยง {HOTEL_INFO['name_th']} ค่ะ ✨\n\n"
-            f"• มีห้องประชุมทั้งหมด {HOTEL_INFO['meeting_rooms']['total_rooms']}\n"
-            f"• {HOTEL_INFO['meeting_rooms']['max_capacity']}\n"
-            f"• พร้อมสิ่งอำนวยความสะดวก โปรเจคเตอร์ เครื่องเสียง และอาหารว่าง/เบรก\n\n"
-            f"📞 สอบถามข้อมูลเพิ่มเติมหรือขอใบเสนอราคา:\n"
+            f"🚗 ระยะทางและการเดินทางจาก {HOTEL_INFO['name_th']} ค่ะ ✨\n\n"
+            f"• มหาวิทยาลัยขอนแก่น (มข.): 5-10 นาที (~3-4 กม.)\n"
+            f"• โรงพยาบาลศรีนครินทร์: 8-10 นาที (~4-5 กม.)\n"
+            f"• เซ็นทรัล แคมปัส: 5-7 นาที (~3-4 กม.)\n"
+            f"• เซ็นทรัลพลาซา ขอนแก่น: 12-15 นาที (~7-8 กม.)\n"
+            f"• สนามบินนานาชาติขอนแก่น: 15-20 นาที (~10-12 กม.)\n"
+            f"• โลตัส โนนม่วง: 1-2 นาที (~500 ม.)\n\n"
+            f"📍 แผนที่: {HOTEL_INFO['location']['google_maps_url']}\n"
+            f"📞 สอบถามเส้นทางโทร: {HOTEL_INFO['contact']['phone']} ได้ตลอด 24 ชม. ค่ะ"
+        )
+
+    # ห้องประชุม
+    elif any(w in msg for w in ["ประชุม", "สัมมนา", "จัดเลี้ยง", "meeting", "event", "hall"]):
+        return (
+            f"🏨 บริการห้องประชุมและจัดเลี้ยง {HOTEL_INFO['name_th']} ค่ะ ✨\n\n"
+            f"• มี {HOTEL_INFO['meeting_rooms']['total_rooms']} รองรับได้สูงสุด {HOTEL_INFO['meeting_rooms']['max_capacity']}\n"
+            f"• มีโปรเจคเตอร์ เครื่องเสียง และบริการอาหารว่าง/เบรกครบวงจร\n\n"
+            f"📞 จองห้องประชุม/ขอใบเสนอราคา:\n"
             f"โทร: {HOTEL_INFO['contact']['phone']}\n"
             f"LINE OA: {HOTEL_INFO['contact']['line_oa']}"
         )
         
+    # อาหารเช้า
     elif any(w in msg for w in ["อาหารเช้า", "breakfast", "บุฟเฟ่", "บุฟเฟต์", "กินข้าว", "ไข่กระทะ", "กาแฟ"]):
-        menu_text = "\n".join([f"  • {m}" for m in HOTEL_INFO["breakfast_info"]["menu_items"]])
         return (
-            f"🍳 ข้อมูลอาหารเช้าแบบบุฟเฟต์ (Buffet Breakfast) {HOTEL_INFO['name_th']} ค่ะ ✨\n\n"
-            f"🍽️ รายการอาหารในไลน์บุฟเฟต์:\n"
-            f"{menu_text}\n\n"
-            f"💵 ราคาอาหารเช้า:\n"
-            f"• ห้อง Deluxe และ Grand Deluxe: รวมอาหารเช้าฟรี 2-4 ท่านตามประเภทห้องพักค่ะ\n"
-            f"• ห้อง Superior: ซื้อเพิ่มพร้อมห้องพักเพียง {HOTEL_INFO['breakfast_info']['price_with_room']} (ซื้อหลังจอง {HOTEL_INFO['breakfast_info']['price_after_booking']})\n\n"
-            f"สอบถามเพิ่มเติมโทร: {HOTEL_INFO['contact']['phone']} ได้เลยนะคะ 😊"
+            f"🍳 อาหารเช้าแบบบุฟเฟต์ (Buffet Breakfast) {HOTEL_INFO['name_th']} ค่ะ ✨\n\n"
+            f"⏰ เวลาให้บริการ: {HOTEL_INFO['breakfast_info']['service_time']}\n"
+            f"🍽️ เมนู: ขนมปัง, น้ำผลไม้, อาหารไทยตามฤดูกาล, สลัดบาร์, เมนูทอดร้อนๆ เช่น ไข่กระทะ, กาแฟสด\n\n"
+            f"💵 ราคา:\n"
+            f"• ห้อง Deluxe / Grand Deluxe: รวมอาหารเช้าฟรีค่ะ\n"
+            f"• ห้อง Superior: ซื้อเพิ่มพร้อมห้องเพียง 100 บ./ท่าน (ซื้อหลังจอง 120 บ./ท่าน) ค่ะ 😊"
         )
 
-    elif any(w in msg for w in ["ราคา", "ห้องพัก", "มีห้อง", "room", "price", "ว่าง", "เตียง"]):
+    # ราคา / จองห้องพัก
+    elif any(w in msg for w in ["จอง", "ราคา", "ห้องพัก", "มีห้อง", "room", "price", "ว่าง", "เตียง"]):
         room_list = "\n".join([
-            f"✨ {r['name']} ({r['size']})\n   ราคา {r['price_starting']} {r['unit']}\n   ({r['breakfast']})"
+            f"• {r['name']}: {r['price_starting']} {r['unit']} ({r['breakfast']})"
             for r in HOTEL_INFO["rooms"]
         ])
         return (
-            f"สวัสดีค่ะ ยินดีต้อนรับสู่ {HOTEL_INFO['name_th']} ค่ะ 🏨✨\n\n"
-            f"ประเภทห้องพักและราคา:\n{room_list}\n\n"
-            f"ต้องการเข้าพักวันที่เท่าไหร่ และพักกี่ท่าน สามารถแจ้งน้องไอหรือโทรจองที่ {HOTEL_INFO['contact']['phone']} ได้เลยนะคะ 😊"
+            f"🏨 ราคาห้องพัก {HOTEL_INFO['name_th']} ค่ะ ✨\n\n"
+            f"{room_list}\n\n"
+            f"👉 ลูกค้าสามารถจองห้องพักได้ทาง LINE OA เท่านั้นนะคะ:\n"
+            f"📲 LINE OA: @ihotelkk (คลิก: https://line.me/R/ti/p/@ihotelkk)\n"
+            f"☎️ โทร: {HOTEL_INFO['contact']['phone']} (24 ชม.)"
         )
     
+    # ที่ตั้ง
     elif any(w in msg for w in ["ที่ตั้ง", "แผนที่", "อยู่แถวไหน", "พิกัด", "ทางไป", "map", "location", "โลตัส", "โนนม่วง"]):
         return (
             f"📍 ที่ตั้ง {HOTEL_INFO['name_th']}\n"
-            f"{HOTEL_INFO['location']['address']}\n\n"
-            f"🚗 สถานที่ใกล้เคียง: เทสโก้ โลตัส โนนม่วง (โลตัส ขอนแก่น 3), ม.ขอนแก่น, รพ.ศรีนครินทร์\n\n"
-            f"🗺️ แผนที่โรงแรม (Google Maps):\n{HOTEL_INFO['location']['google_maps_url']}\n\n"
-            f"สอบถามเส้นทางโทร: {HOTEL_INFO['contact']['phone']} ได้ตลอด 24 ชม. ค่ะ"
+            f"{HOTEL_INFO['location']['address']}\n"
+            f"(ติดถนนมิตรภาพ ใกล้โลตัสโนนม่วง / มข.)\n\n"
+            f"🗺️ แผนที่ (Google Maps): {HOTEL_INFO['location']['google_maps_url']}\n"
+            f"☎️ โทร: {HOTEL_INFO['contact']['phone']} ได้ตลอด 24 ชม. ค่ะ"
         )
         
+    # เช็คอิน เช็คเอาท์
     elif any(w in msg for w in ["เช็คอิน", "เช็คเอาท์", "check in", "check out", "เวลา"]):
         return (
-            f"🕒 เวลาเช็คอิน - เช็คเอาท์ ของโรงแรมค่ะ\n\n"
-            f"👉 เช็คอิน: {HOTEL_INFO['policies']['check_in']}\n"
-            f"👉 เช็คเอาท์: {HOTEL_INFO['policies']['check_out']}\n"
-            f"👉 แผนกต้อนรับเปิดบริการตลอด 24 ชั่วโมงค่ะ เข้าพักเวลาไหนก็สะดวกสบาย ✨"
+            f"🕒 เวลาเช็คอิน - เช็คเอาท์ ค่ะ ✨\n\n"
+            f"• เช็คอิน: {HOTEL_INFO['policies']['check_in']}\n"
+            f"• เช็คเอาท์: {HOTEL_INFO['policies']['check_out']}\n"
+            f"• แผนกต้อนรับเปิดบริการตลอด 24 ชม. ค่ะ 😊"
         )
         
+    # ช่องทางติดต่อ
     elif any(w in msg for w in ["เบอร์", "ติดต่อ", "โทร", "call", "line", "แอดไลน์", "เจ้าหน้าที่"]):
         return (
-            f"📞 ช่องทางการติดต่อ {HOTEL_INFO['name_th']} ค่ะ\n\n"
-            f"☎️ โทร: {HOTEL_INFO['contact']['phone']}\n"
-            f"💬 LINE OA: {HOTEL_INFO['contact']['line_oa']}\n"
-            f"📍 แผนที่: {HOTEL_INFO['location']['google_maps_url']}\n\n"
-            f"ยินดีให้บริการตลอด 24 ชั่วโมงค่ะ 😊"
+            f"📞 ช่องทางการติดต่อ {HOTEL_INFO['name_th']} ค่ะ ✨\n\n"
+            f"☎️ โทร: {HOTEL_INFO['contact']['phone']} (ตลอด 24 ชม.)\n"
+            f"📲 LINE OA (จองห้องพัก): @ihotelkk (https://line.me/R/ti/p/@ihotelkk)\n"
+            f"📍 แผนที่: {HOTEL_INFO['location']['google_maps_url']}"
         )
         
     else:
         return (
-            f"สวัสดีค่ะ ยินดีต้อนรับสู่ {HOTEL_INFO['name_th']} ค่ะ 🏨✨\n\n"
-            f"น้องไอยินดีให้บริการค่ะ คุณลูกค้าสามารถสอบถามข้อมูลห้องพัก, ราคา, อาหารเช้า, ห้องประชุม, หรือติดต่อจองห้องพักได้เลยนะคะ 😊\n\n"
-            f"☎️ โทรด่วน: {HOTEL_INFO['contact']['phone']}\n"
-            f"💬 LINE OA: {HOTEL_INFO['contact']['line_oa']}"
+            f"สวัสดีค่ะ น้องไอ ยินดีต้อนรับสู่ {HOTEL_INFO['name_th']} ค่ะ 🏨✨\n\n"
+            f"สอบถามข้อมูลห้องพัก ราคา อาหารเช้า ระยะทาง หรือติดต่อจองห้องพักได้เลยนะคะ 😊\n\n"
+            f"📲 จองห้องพักผ่าน LINE OA: @ihotelkk (คลิก: https://line.me/R/ti/p/@ihotelkk)\n"
+            f"☎️ โทรด่วน: {HOTEL_INFO['contact']['phone']} (24 ชม.)"
         )
+

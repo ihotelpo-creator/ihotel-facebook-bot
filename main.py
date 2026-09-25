@@ -46,34 +46,41 @@ def handle_payload_action(sender_id: str, payload: str):
         
     elif payload == "QR_LOCATION_MAP":
         location_msg = (
-            f"📍 แผนที่และการเดินทางมายัง {HOTEL_INFO['name_th']}\n\n"
-            f"ที่อยู่: {HOTEL_INFO['location']['address']}\n\n"
-            f"🚗 สถานที่สำคัญใกล้เคียง:\n"
-            f"• สนามบินขอนแก่น (10-15 นาที)\n"
-            f"• มหาวิทยาลัยขอนแก่น (10 นาที)\n"
-            f"• บึงหนองโคตร (5-7 นาที)\n"
-            f"• เซ็นทรัลพลาซา ขอนแก่น (12 นาที)\n\n"
-            f"☎️ หากเดินทางไม่ถูก โทรสอบถามเส้นทางได้ที่: {HOTEL_INFO['contact']['phone']}"
+            f"📍 แผนที่และการเดินทางมายัง {HOTEL_INFO['name_th']} ค่ะ 🚗✨\n\n"
+            f"🏢 ที่อยู่: {HOTEL_INFO['location']['address']}\n"
+            f"(ติดถนนมิตรภาพ ใกล้โลตัสโนนม่วง / มข.)\n\n"
+            f"⏱️ ระยะทางไปยังสถานที่สำคัญ:\n"
+            f"• โลตัส โนนม่วง (ขอนแก่น 3): 1-2 นาที (~500 ม.)\n"
+            f"• มหาวิทยาลัยขอนแก่น (มข.): 5-10 นาที (~3-4 กม.)\n"
+            f"• โรงพยาบาลศรีนครินทร์: 8-10 นาที (~4-5 กม.)\n"
+            f"• เซ็นทรัล แคมปัส (Central Campus): 5-7 นาที (~3-4 กม.)\n"
+            f"• เซ็นทรัลพลาซา ขอนแก่น: 12-15 นาที (~7-8 กม.)\n"
+            f"• สนามบินนานาชาติขอนแก่น: 15-20 นาที (~10-12 กม.)\n\n"
+            f"🗺️ แผนที่ Google Maps: {HOTEL_INFO['location']['google_maps_url']}\n"
+            f"☎️ สอบถามเส้นทางโทร: {HOTEL_INFO['contact']['phone']} ได้ตลอด 24 ชม. ค่ะ"
         )
         facebook_service.send_text_message(sender_id, location_msg)
         
     elif payload == "QR_CHECKIN_INFO":
         checkin_msg = (
-            f"🕒 ข้อมูลเวลาเช็คอิน - เช็คเอาท์ ค่ะ\n\n"
+            f"🕒 ข้อมูลเวลาเช็คอิน - เช็คเอาท์ ค่ะ ✨\n\n"
             f"👉 เช็คอินได้ตั้งแต่: {HOTEL_INFO['policies']['check_in']}\n"
             f"👉 เช็คเอาท์ก่อน: {HOTEL_INFO['policies']['check_out']}\n"
-            f"👉 แผนกต้อนรับบริการตลอด 24 ชม. ไม่ว่าจะเดินทางมาถึงกี่โมงก็มีเจ้าหน้าที่คอยต้อนรับค่ะ ✨"
+            f"👉 แผนกต้อนรับบริการตลอด 24 ชม. มีเจ้าหน้าที่คอยดูแลตลอดเวลาค่ะ ✨"
         )
         facebook_service.send_text_message(sender_id, checkin_msg)
         
     elif payload == "QR_AMENITIES_BREAKFAST":
-        amenities_list = "\n".join([f"✨ {a}" for a in HOTEL_INFO["amenities"][:6]])
-        amenities_msg = (
-            f"🍳 สิ่งอำนวยความสะดวกและบริการของโรงแรม:\n\n"
-            f"{amenities_list}\n\n"
-            f"☕ มีมุมชากาแฟ โอวัลติน และขนมปังบริการฟรีบริเวณล็อบบี้ช่วงเช้าค่ะ"
+        breakfast_msg = (
+            f"🍳 ข้อมูลอาหารเช้าแบบบุฟเฟต์ (Buffet Breakfast) {HOTEL_INFO['name_th']} ค่ะ ✨\n\n"
+            f"⏰ เวลาให้บริการ: {HOTEL_INFO['breakfast_info']['service_time']} (06:30 - 10:00 น.)\n"
+            f"🍽️ เมนูในไลน์บุฟเฟต์: ขนมปัง, น้ำผลไม้, อาหารไทยตามฤดูกาล, สลัดบาร์, เมนูทอดร้อนๆ เช่น ไข่กระทะ ไส้กรอก แฮม, กาแฟสดชงสดใหม่\n\n"
+            f"💵 ราคาอาหารเช้า:\n"
+            f"• ห้อง Deluxe / Grand Deluxe: รวมอาหารเช้าฟรีค่ะ\n"
+            f"• ห้อง Superior: ซื้อเพิ่มพร้อมห้องเพียง {HOTEL_INFO['breakfast_info']['price_with_room']} (ซื้อหลังจอง {HOTEL_INFO['breakfast_info']['price_after_booking']}) ค่ะ"
         )
-        facebook_service.send_text_message(sender_id, amenities_msg)
+        facebook_service.send_text_message(sender_id, breakfast_msg)
+        facebook_service.send_breakfast_photos(sender_id)
         
     elif payload == "QR_CONTACT_STAFF":
         contact_msg = (

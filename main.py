@@ -89,12 +89,12 @@ def handle_payload_action(sender_id: str, payload: str):
         room_id = payload.replace("BOOK_ROOM_", "")
         room_name = next((r["name"] for r in HOTEL_INFO["rooms"] if r["id"] == room_id), "ห้องพัก")
         booking_prompt = (
-            f"ยินดีเลยค่ะสำหรับการจองห้องพัก {room_name} 🛏️✨\n\n"
-            f"รบกวนคุณลูกค้าแจ้งข้อมูลดังนี้ได้เลยนะคะ:\n"
-            f"1. วันที่เข้าพัก และ วันที่เช็คเอาท์\n"
-            f"2. จำนวนผู้เข้าพัก (ผู้ใหญ่ / เด็ก)\n"
-            f"3. ชื่อและเบอร์โทรศัพท์สำหรับติดต่อกลับ\n\n"
-            f"หรือโทรจองด่วนได้ที่ ☎️ {HOTEL_INFO['contact']['phone']} ค่ะ"
+            f"ยินดีต้อนรับค่ะ สำหรับการจองห้องพัก {room_name} 🛏️✨\n\n"
+            f"🏨 การจองห้องพักของโรงแรม I Hotel Khonkaen ลูกค้าจะต้องดำเนินการจองผ่าน LINE OA เท่านั้นนะคะ เพื่อความสะดวกรวดเร็วในการเช็คห้องว่างและยืนยันการจองค่ะ\n\n"
+            f"📲 **คลิกเพื่อจองผ่าน LINE OA:**\n"
+            f"👉 https://line.me/R/ti/p/@ihotelkk\n"
+            f"(หรือค้นหา ID LINE: @ihotelkk)\n\n"
+            f"☎️ สอบถามข้อมูลเพิ่มเติมโทร: {HOTEL_INFO['contact']['phone']} ได้ตลอด 24 ชม. ค่ะ"
         )
         facebook_service.send_text_message(sender_id, booking_prompt)
         

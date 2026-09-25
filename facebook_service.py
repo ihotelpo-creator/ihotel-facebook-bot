@@ -129,14 +129,14 @@ def send_room_carousel(recipient_id: str) -> bool:
             "subtitle": f"👥 {room['capacity']} | {room['bed_type']}\n{room['description']}",
             "buttons": [
                 {
-                    "type": "postback",
-                    "title": "🛎️ สนใจจองห้องนี้",
-                    "payload": f"BOOK_ROOM_{room['id']}"
+                    "type": "web_url",
+                    "url": "https://line.me/R/ti/p/@ihotelkk",
+                    "title": "📲 จองผ่าน LINE OA"
                 },
                 {
                     "type": "phone_number",
-                    "title": "📞 โทรสอบถาม",
-                    "payload": HOTEL_INFO["contact"]["phone"].split(",")[0].strip().replace("-", "")
+                    "title": "📞 โทร: 0804579889",
+                    "payload": "+66804579889"
                 }
             ]
         })

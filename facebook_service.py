@@ -177,11 +177,12 @@ def send_image_message(recipient_id: str, image_url: str) -> bool:
 
 
 def send_superior_photos(recipient_id: str):
-    """ส่งชุดรูปภาพของห้อง Superior Room (3 รูป)"""
+    """ส่งชุดรูปภาพของห้อง Superior Room (4 รูป)"""
     photo_urls = [
-        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/superior_main.jpg",
-        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/superior_bed.jpg",
-        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/superior_desk.jpg"
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/superior_1.jpg",
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/superior_2.jpg",
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/superior_3.jpg",
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/superior_4.jpg"
     ]
     for url in photo_urls:
         send_image_message(recipient_id, url)

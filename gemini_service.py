@@ -122,12 +122,15 @@ def fallback_rule_based_reply(user_message: str) -> str:
             f"LINE OA: {HOTEL_INFO['contact']['line_oa']}"
         )
         
-    elif any(w in msg for w in ["อาหารเช้า", "breakfast", "บุฟเฟ่", "บุฟเฟต์", "กินข้าว"]):
+    elif any(w in msg for w in ["อาหารเช้า", "breakfast", "บุฟเฟ่", "บุฟเฟต์", "กินข้าว", "ไข่กระทะ", "กาแฟ"]):
+        menu_text = "\n".join([f"  • {m}" for m in HOTEL_INFO["breakfast_info"]["menu_items"]])
         return (
-            f"🍳 ข้อมูลอาหารเช้า {HOTEL_INFO['name_th']} ค่ะ\n\n"
-            f"• บริการแบบ: {HOTEL_INFO['breakfast_info']['type']}\n"
+            f"🍳 ข้อมูลอาหารเช้าแบบบุฟเฟต์ (Buffet Breakfast) {HOTEL_INFO['name_th']} ค่ะ ✨\n\n"
+            f"🍽️ รายการอาหารในไลน์บุฟเฟต์:\n"
+            f"{menu_text}\n\n"
+            f"💵 ราคาอาหารเช้า:\n"
             f"• ห้อง Deluxe และ Grand Deluxe: รวมอาหารเช้าฟรี 2-4 ท่านตามประเภทห้องพักค่ะ\n"
-            f"• ห้อง Superior: สามารถซื้อเพิ่มพร้อมห้องพักเพียง {HOTEL_INFO['breakfast_info']['price_with_room']} (ซื้อหลังจอง {HOTEL_INFO['breakfast_info']['price_after_booking']})\n\n"
+            f"• ห้อง Superior: ซื้อเพิ่มพร้อมห้องพักเพียง {HOTEL_INFO['breakfast_info']['price_with_room']} (ซื้อหลังจอง {HOTEL_INFO['breakfast_info']['price_after_booking']})\n\n"
             f"สอบถามเพิ่มเติมโทร: {HOTEL_INFO['contact']['phone']} ได้เลยนะคะ 😊"
         )
 

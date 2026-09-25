@@ -155,8 +155,10 @@ class FacebookWebhookHandler(BaseHTTPRequestHandler):
         facebook_service.send_text_message(sender_id, reply, with_quick_replies=True)
 
         lower_text = text.lower()
-        if any(w in lower_text for w in ["รูป", "ภาพ", "photo", "picture", "ดูห้อง", "หน้าตาห้อง", "ห้องเป็นยังไง", "ตึก", "ฟร้อน", "ล็อบบี้"]):
-            if any(w in lower_text for w in ["ตึก", "อาคาร", "โรงแรม", "ภายนอก", "ข้างนอก", "building"]):
+        if any(w in lower_text for w in ["รูป", "ภาพ", "photo", "picture", "ดูห้อง", "หน้าตาห้อง", "ห้องเป็นยังไง", "ตึก", "ฟร้อน", "ล็อบบี้", "อาหารเช้า", "บุฟเฟ่", "breakfast"]):
+            if any(w in lower_text for w in ["อาหารเช้า", "บุฟเฟ่", "กินข้าว", "breakfast", "สลัด", "ไข่กระทะ"]):
+                facebook_service.send_breakfast_photos(sender_id)
+            elif any(w in lower_text for w in ["ตึก", "อาคาร", "โรงแรม", "ภายนอก", "ข้างนอก", "building"]):
                 facebook_service.send_hotel_building_photos(sender_id)
             elif any(w in lower_text for w in ["ฟร้อน", "ฟร้อนท์", "ล็อบบี้", "lobby", "front", "เคาน์เตอร์"]):
                 facebook_service.send_lobby_photos(sender_id)
@@ -170,6 +172,7 @@ class FacebookWebhookHandler(BaseHTTPRequestHandler):
                 facebook_service.send_hotel_building_photos(sender_id)
                 facebook_service.send_superior_photos(sender_id)
                 facebook_service.send_deluxe_photos(sender_id)
+
 
 
 

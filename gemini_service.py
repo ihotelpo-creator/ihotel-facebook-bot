@@ -15,8 +15,8 @@ from hotel_data import get_hotel_knowledge_prompt, HOTEL_INFO
 logger = logging.getLogger(__name__)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-# ใช้โมเดล gemini-1.5-flash หรือ gemini-2.0-flash ที่ฉลาด เร็ว และฟรี
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+# ใช้โมเดล gemini-flash-latest ที่เสถียร ฉลาด เร็ว และฟรี
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
 
 
 SYSTEM_PROMPT = f"""

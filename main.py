@@ -168,6 +168,57 @@ try:
         </html>
         """
 
+    @app.get("/privacy", response_class=HTMLResponse)
+    async def privacy_policy():
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Privacy Policy - {HOTEL_INFO['name_th']}</title>
+            <style>
+                body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; max-width: 800px; margin: auto; line-height: 1.6; color: #333; }}
+                h1, h2 {{ color: #1877f2; }}
+            </style>
+        </head>
+        <body>
+            <h1>Privacy Policy (นโยบายความเป็นส่วนตัว)</h1>
+            <p><strong>{HOTEL_INFO['name_th']} ({HOTEL_INFO['name_en']})</strong></p>
+            <p>อัปเดตล่าสุด: 25 กันยายน 2026</p>
+            
+            <h2>1. ข้อมูลที่เราเก็บรวบรวม</h2>
+            <p>ระบบบอท Facebook Messenger เก็บรวบรวมเฉพาะข้อมูลที่จำเป็นต่อการให้บริการ เช่น ชื่อโปรไฟล์ Facebook, ID ผู้ใช้, และข้อความสอบถามข้อมูลห้องพัก การจอง และการบริการของโรงแรม</p>
+            
+            <h2>2. วัตถุประสงค์ในการใช้ข้อมูล</h2>
+            <p>เพื่อตอบคำถาม ให้ข้อมูลห้องพัก ราคา บริการ และประสานงานการจองห้องพักของ {HOTEL_INFO['name_th']} เท่านั้น เราไม่มีนโยบายจำหน่ายหรือเปิดเผยข้อมูลส่วนบุคคลให้แก่บุคคลภายนอก</p>
+            
+            <h2>3. การติดต่อเรา</h2>
+            <p>หากมีข้อสงสัยเกี่ยวกับนโยบายความเป็นส่วนตัว สามารถติดต่อได้ที่ {HOTEL_INFO['contact']['phone']} หรืออีเมล {HOTEL_INFO['contact']['email']}</p>
+        </body>
+        </html>
+        """
+
+    @app.get("/terms", response_class=HTMLResponse)
+    async def terms_of_service():
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Terms of Service - {HOTEL_INFO['name_th']}</title>
+            <style>
+                body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; max-width: 800px; margin: auto; line-height: 1.6; color: #333; }}
+                h1, h2 {{ color: #1877f2; }}
+            </style>
+        </head>
+        <body>
+            <h1>Terms of Service (เงื่อนไขการใช้บริการ)</h1>
+            <p><strong>{HOTEL_INFO['name_th']}</strong></p>
+            <p>ระบบแชทอัตโนมัติจัดทำขึ้นเพื่อให้ข้อมูลห้องพักและสิ่งอำนวยความสะดวกของโรงแรม การจองห้องพักจะมีผลสมบูรณ์เมื่อได้รับการยืนยันจากทางโรงแรม</p>
+        </body>
+        </html>
+        """
+
     @app.get("/webhook")
     async def verify_webhook(
         hub_mode: str = Query(None, alias="hub.mode"),

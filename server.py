@@ -154,6 +154,11 @@ class FacebookWebhookHandler(BaseHTTPRequestHandler):
 
         facebook_service.send_text_message(sender_id, reply, with_quick_replies=True)
 
+        lower_text = text.lower()
+        if any(w in lower_text for w in ["รูป", "ภาพ", "photo", "picture", "ดูห้อง", "หน้าตาห้อง", "ห้องเป็นยังไง"]):
+            facebook_service.send_superior_photos(sender_id)
+
+
     def _handle_payload(self, sender_id: str, payload: str):
         from main import handle_payload_action
         handle_payload_action(sender_id, payload)

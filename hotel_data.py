@@ -74,7 +74,7 @@ HOTEL_INFO = {
             "capacity": "ผู้ใหญ่ 2 ท่าน",
             "bed_type": "เตียงเดี่ยว 3.5 ฟุต 2 เตียง",
             "breakfast": "ไม่รวมอาหารเช้า (ซื้อเพิ่มพร้อมห้อง 100 บ./ท่าน, หลังจอง 120 บ./ท่าน)",
-            "image_url": "https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=600"
+            "image_url": "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/superior_bed.jpg"
         },
         {
             "id": "superior_double",
@@ -86,7 +86,7 @@ HOTEL_INFO = {
             "capacity": "ผู้ใหญ่ 2 ท่าน",
             "bed_type": "เตียงเดี่ยว King Size ใหญ่",
             "breakfast": "ไม่รวมอาหารเช้า (ซื้อเพิ่มพร้อมห้อง 100 บ./ท่าน, หลังจอง 120 บ./ท่าน)",
-            "image_url": "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=600"
+            "image_url": "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/superior_main.jpg"
         },
         {
             "id": "deluxe_twin",

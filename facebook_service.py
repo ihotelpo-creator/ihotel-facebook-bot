@@ -156,3 +156,33 @@ def send_room_carousel(recipient_id: str) -> bool:
         }
     }
     return send_raw_message(payload)
+
+
+def send_image_message(recipient_id: str, image_url: str) -> bool:
+    """ส่งรูปภาพไปยัง Facebook Messenger"""
+    payload = {
+        "recipient": {"id": recipient_id},
+        "messaging_type": "RESPONSE",
+        "message": {
+            "attachment": {
+                "type": "image",
+                "payload": {
+                    "url": image_url,
+                    "is_reusable": True
+                }
+            }
+        }
+    }
+    return send_raw_message(payload)
+
+
+def send_superior_photos(recipient_id: str):
+    """ส่งชุดรูปภาพของห้อง Superior Room (3 รูป)"""
+    photo_urls = [
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/superior_main.jpg",
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/superior_bed.jpg",
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/superior_desk.jpg"
+    ]
+    for url in photo_urls:
+        send_image_message(recipient_id, url)
+

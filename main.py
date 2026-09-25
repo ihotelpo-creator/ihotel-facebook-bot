@@ -125,6 +125,12 @@ def process_user_message(sender_id: str, message_text: str):
     
     # 5. ส่งข้อความกลับหาผู้ใช้
     facebook_service.send_text_message(sender_id, reply, with_quick_replies=True)
+    
+    # 6. หากลูกค้าถามหารูปภาพห้องพัก ให้ส่งรูปจริงประกอบไปด้วย
+    lower_text = message_text.lower()
+    if any(w in lower_text for w in ["รูป", "ภาพ", "photo", "picture", "ดูห้อง", "หน้าตาห้อง", "ห้องเป็นยังไง"]):
+        facebook_service.send_superior_photos(sender_id)
+
 
 
 # =========================================================================

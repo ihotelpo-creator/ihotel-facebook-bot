@@ -155,17 +155,22 @@ class FacebookWebhookHandler(BaseHTTPRequestHandler):
         facebook_service.send_text_message(sender_id, reply, with_quick_replies=True)
 
         lower_text = text.lower()
-        if any(w in lower_text for w in ["รูป", "ภาพ", "photo", "picture", "ดูห้อง", "หน้าตาห้อง", "ห้องเป็นยังไง"]):
-            if any(w in lower_text for w in ["deluxe", "ดีลักซ์", "1000", "ผ้าดูเว่"]):
+        if any(w in lower_text for w in ["รูป", "ภาพ", "photo", "picture", "ดูห้อง", "หน้าตาห้อง", "ห้องเป็นยังไง", "ตึก", "ฟร้อน", "ล็อบบี้"]):
+            if any(w in lower_text for w in ["ตึก", "อาคาร", "โรงแรม", "ภายนอก", "ข้างนอก", "building"]):
+                facebook_service.send_hotel_building_photos(sender_id)
+            elif any(w in lower_text for w in ["ฟร้อน", "ฟร้อนท์", "ล็อบบี้", "lobby", "front", "เคาน์เตอร์"]):
+                facebook_service.send_lobby_photos(sender_id)
+            elif any(w in lower_text for w in ["deluxe", "ดีลักซ์", "1000", "ผ้าดูเว่"]):
                 facebook_service.send_deluxe_photos(sender_id)
             elif any(w in lower_text for w in ["3 ท่าน", "สามท่าน", "grand deluxe", "แกรนด์", "triple", "1600", "ครอบครัว"]):
                 facebook_service.send_grand_deluxe_triple_photos(sender_id)
             elif any(w in lower_text for w in ["superior", "สุพีเรีย", "750", "28"]):
                 facebook_service.send_superior_photos(sender_id)
             else:
+                facebook_service.send_hotel_building_photos(sender_id)
                 facebook_service.send_superior_photos(sender_id)
                 facebook_service.send_deluxe_photos(sender_id)
-                facebook_service.send_grand_deluxe_triple_photos(sender_id)
+
 
 
 

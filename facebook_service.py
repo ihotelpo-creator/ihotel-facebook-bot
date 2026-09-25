@@ -210,5 +210,21 @@ def send_deluxe_photos(recipient_id: str):
         send_image_message(recipient_id, url)
 
 
+def send_hotel_building_photos(recipient_id: str):
+    """ส่งรูปภาพตึกโรงแรม I-HOTEL และล็อบบี้ (2 รูป)"""
+    photo_urls = [
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/hotel_building.jpg",
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/hotel_lobby.jpg"
+    ]
+    for url in photo_urls:
+        send_image_message(recipient_id, url)
+
+
+def send_lobby_photos(recipient_id: str):
+    """ส่งรูปเคาน์เตอร์ฟร้อนและล็อบบี้โรงแรม"""
+    send_image_message(recipient_id, "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/hotel_lobby.jpg")
+
+
+
 
 

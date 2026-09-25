@@ -99,7 +99,7 @@ HOTEL_INFO = {
             "bed_type": "เตียงเดี่ยว 3.5 ฟุต 2 เตียง (ผ้าดูเว่)",
             "breakfast": "รวมอาหารเช้าบุฟเฟต์ 2 ท่าน",
             "highlights": "ชุดกาแฟ, ผ้าดูเว่",
-            "image_url": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600"
+            "image_url": "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/deluxe_green.jpg"
         },
         {
             "id": "deluxe_double",
@@ -112,7 +112,7 @@ HOTEL_INFO = {
             "bed_type": "เตียงเดี่ยว King Size ใหญ่ (ผ้าดูเว่)",
             "breakfast": "รวมอาหารเช้าบุฟเฟต์ 2 ท่าน",
             "highlights": "ชุดกาแฟ, ผ้าดูเว่",
-            "image_url": "https://images.unsplash.com/photo-1590490360182-c33d57733427?w=600"
+            "image_url": "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/deluxe_blue.jpg"
         },
         {
             "id": "grand_deluxe_double",

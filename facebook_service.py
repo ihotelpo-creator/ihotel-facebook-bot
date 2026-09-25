@@ -200,3 +200,15 @@ def send_grand_deluxe_triple_photos(recipient_id: str):
         send_image_message(recipient_id, url)
 
 
+def send_deluxe_photos(recipient_id: str):
+    """ส่งชุดรูปภาพของห้อง Deluxe Room (2 รูป)"""
+    photo_urls = [
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/deluxe_blue.jpg",
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/deluxe_green.jpg"
+    ]
+    for url in photo_urls:
+        send_image_message(recipient_id, url)
+
+
+
+

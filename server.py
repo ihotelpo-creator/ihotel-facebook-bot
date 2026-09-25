@@ -156,13 +156,17 @@ class FacebookWebhookHandler(BaseHTTPRequestHandler):
 
         lower_text = text.lower()
         if any(w in lower_text for w in ["รูป", "ภาพ", "photo", "picture", "ดูห้อง", "หน้าตาห้อง", "ห้องเป็นยังไง"]):
-            if any(w in lower_text for w in ["3 ท่าน", "สามท่าน", "grand deluxe", "แกรนด์", "triple", "1600", "ครอบครัว"]):
+            if any(w in lower_text for w in ["deluxe", "ดีลักซ์", "1000", "ผ้าดูเว่"]):
+                facebook_service.send_deluxe_photos(sender_id)
+            elif any(w in lower_text for w in ["3 ท่าน", "สามท่าน", "grand deluxe", "แกรนด์", "triple", "1600", "ครอบครัว"]):
                 facebook_service.send_grand_deluxe_triple_photos(sender_id)
             elif any(w in lower_text for w in ["superior", "สุพีเรีย", "750", "28"]):
                 facebook_service.send_superior_photos(sender_id)
             else:
                 facebook_service.send_superior_photos(sender_id)
+                facebook_service.send_deluxe_photos(sender_id)
                 facebook_service.send_grand_deluxe_triple_photos(sender_id)
+
 
 
 

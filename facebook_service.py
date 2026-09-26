@@ -226,12 +226,11 @@ def send_lobby_photos(recipient_id: str):
 
 
 def send_breakfast_photos(recipient_id: str):
-    """ส่งชุดรูปภาพไลน์อาหารเช้าบุฟเฟต์ (4 รูป)"""
+    """ส่งชุดรูปภาพไลน์อาหารเช้าบุฟเฟต์ (3 รูป)"""
     photo_urls = [
         "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/breakfast_buffet_line.jpg",
         "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/breakfast_hot_dishes.jpg",
-        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/breakfast_coffee_juice.jpg",
-        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/breakfast_bread.jpg"
+        "https://raw.githubusercontent.com/ihotelpo-creator/ihotel-facebook-bot/main/static/images/breakfast_drinks_bread.jpg"
     ]
     for url in photo_urls:
         send_image_message(recipient_id, url)

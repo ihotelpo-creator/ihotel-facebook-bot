@@ -39,7 +39,7 @@ SYSTEM_PROMPT = f"""
 
 def generate_reply(user_message: str, chat_history: list = None) -> str:
     """
-    ส่งข้อความของลูกค้าไปให้ Gemini AI เพื่อสร้างคำตอบที่เหมาะสม
+    ส่งข้อความของลูกค้าไปให้ Gemini AI เพื่อสร้างคำตอบที่เหมาะสมอย่างรวดเร็ว
     """
     api_key = os.getenv("GEMINI_API_KEY", GEMINI_API_KEY)
     if not api_key or api_key == "YOUR_GEMINI_API_KEY_HERE":
@@ -48,12 +48,10 @@ def generate_reply(user_message: str, chat_history: list = None) -> str:
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={api_key}"
     
-    # สร้าง contents payload
+    # สร้าง contents payload (ใช้ประวัติล่าสุด 4 ข้อความเพื่อความรวดเร็ว)
     contents = []
-    
-    # หากมีประวัติการสนทนา ให้ใส่ลงไป
     if chat_history:
-        for turn in chat_history[-6:]: # เก็บ 6 ข้อความล่าสุด
+        for turn in chat_history[-4:]:
             contents.append({
                 "role": "user" if turn.get("sender") == "user" else "model",
                 "parts": [{"text": turn.get("text", "")}]
@@ -70,9 +68,9 @@ def generate_reply(user_message: str, chat_history: list = None) -> str:
         },
         "contents": contents,
         "generationConfig": {
-            "temperature": 0.65,
-            "maxOutputTokens": 400,
-            "topP": 0.95
+            "temperature": 0.4,
+            "maxOutputTokens": 250,
+            "topP": 0.9
         }
     }
 
@@ -84,7 +82,8 @@ def generate_reply(user_message: str, chat_history: list = None) -> str:
             method='POST'
         )
         
-        with urllib.request.urlopen(req, timeout=10) as response:
+        # ปรับ timeout ให้ตอบกลับเร็วภายใน 5 วินาที
+        with urllib.request.urlopen(req, timeout=5) as response:
             result = json.loads(response.read().decode('utf-8'))
             candidates = result.get("candidates", [])
             if candidates:
@@ -96,9 +95,9 @@ def generate_reply(user_message: str, chat_history: list = None) -> str:
         error_body = e.read().decode('utf-8')
         logger.error(f"Gemini API HTTPError {e.code}: {error_body}")
     except Exception as e:
-        logger.error(f"เกิดข้อผิดพลาดในการเรียก Gemini API: {e}")
+        logger.error(f"เกิดข้อผิดพลาดในการเรียก Gemini API (ใช้ Fallback): {e}")
 
-    # หาก API ขัดข้อง ให้ใช้ Fallback Rule-based ตอบอัตโนมัติ
+    # หาก API ขัดข้องหรือตอบช้า ให้ใช้ Fallback Rule-based ทันที
     return fallback_rule_based_reply(user_message)
 
 

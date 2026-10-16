@@ -5,6 +5,7 @@ Standalone Lightweight HTTP Webhook Server (Zero External Dependencies)
 """
 
 import os
+import time
 import json
 import logging
 from urllib.parse import urlparse, parse_qs
@@ -26,6 +27,8 @@ PORT = int(os.getenv("PORT", "8000"))
 HOST = os.getenv("HOST", "0.0.0.0")
 
 chat_sessions = {}
+processed_mids = set()  # ป้องกันการตอบซ้ำจาก Facebook Webhook Retry
+last_reply_tracker = {}  # เก็บเวลาและข้อความล่าสุดของแต่ละ user ป้องกันการตอบซ้ำรัวๆ
 
 class FacebookWebhookHandler(BaseHTTPRequestHandler):
     def _send_response(self, content: str, content_type: str = "text/html", status_code: int = 200):
@@ -112,6 +115,9 @@ class FacebookWebhookHandler(BaseHTTPRequestHandler):
             logger.info(f"ได้รับ Webhook Event: {json.dumps(body, ensure_ascii=False)}")
 
             if body.get("object") == "page":
+                # ส่ง HTTP 200 ตอบกลับ Facebook ทันทีเพื่อไม่ให้ Facebook ยิงซ้ำ
+                self._send_response(json.dumps({"status": "EVENT_RECEIVED"}), "application/json", 200)
+
                 for entry in body.get("entry", []):
                     for messaging_event in entry.get("messaging", []):
                         sender_id = messaging_event.get("sender", {}).get("id")
@@ -122,26 +128,47 @@ class FacebookWebhookHandler(BaseHTTPRequestHandler):
                         if "message" in messaging_event:
                             msg_obj = messaging_event["message"]
                             
+                            # ข้ามข้อความ Echo จากเพจตัวเอง
+                            if msg_obj.get("is_echo"):
+                                continue
+                                
+                            # ป้องกันการประมวลผลข้อความเดิมซ้ำ (Deduplication ด้วย mid)
+                            mid = msg_obj.get("mid")
+                            if mid:
+                                if mid in processed_mids:
+                                    logger.info(f"ข้ามข้อความซ้ำ (mid={mid})")
+                                    continue
+                                processed_mids.add(mid)
+                                if len(processed_mids) > 1000:
+                                    processed_mids.clear()
+                            
                             # ตรวจสอบว่าเป็นการกดปุ่ม Quick Reply หรือไม่
                             if "quick_reply" in msg_obj:
                                 payload = msg_obj["quick_reply"].get("payload")
                                 self._handle_payload(sender_id, payload)
                             elif "text" in msg_obj:
-                                text = msg_obj["text"]
+                                text = msg_obj["text"].strip()
                                 self._process_text(sender_id, text)
                                 
                         # จัดการ Postback Buttons
                         elif "postback" in messaging_event:
                             payload = messaging_event["postback"].get("payload")
                             self._handle_payload(sender_id, payload)
-
-                self._send_response(json.dumps({"status": "EVENT_RECEIVED"}), "application/json", 200)
             else:
                 self._send_response("Not Found", "text/plain", 404)
         else:
             self._send_response("Not Found", "text/plain", 404)
 
     def _process_text(self, sender_id: str, text: str):
+        now = time.time()
+        last_info = last_reply_tracker.get(sender_id)
+        
+        # ป้องกันกรณีลูกค้าส่งข้อความเดิมซ้ำติดๆ กัน หรือระบบยิงซ้ำภายใน 5 วินาที
+        if last_info:
+            if last_info.get("user_text") == text and (now - last_info.get("time", 0)) < 8:
+                logger.info(f"ข้ามการตอบซ้ำข้อความเดิมติดกันจาก {sender_id}")
+                return
+
         facebook_service.mark_seen(sender_id)
         facebook_service.send_typing_indicator(sender_id, is_typing=True)
 
@@ -150,7 +177,14 @@ class FacebookWebhookHandler(BaseHTTPRequestHandler):
 
         chat_sessions[sender_id].append({"sender": "user", "text": text})
         reply = gemini_service.generate_reply(text, chat_sessions[sender_id])
+        
+        # ป้องกันบอทส่งคำตอบเดิมเป๊ะๆ ซ้ำรัวๆ ในเวลาใกล้กัน (ภายใน 10 วินาที)
+        if last_info and last_info.get("bot_reply") == reply and (now - last_info.get("time", 0)) < 10:
+            logger.info(f"ข้ามการส่งคำตอบเดิมซ้ำรัวๆ ให้กับ {sender_id}")
+            return
+
         chat_sessions[sender_id].append({"sender": "bot", "text": reply})
+        last_reply_tracker[sender_id] = {"user_text": text, "bot_reply": reply, "time": now}
 
         facebook_service.send_text_message(sender_id, reply, with_quick_replies=True)
 

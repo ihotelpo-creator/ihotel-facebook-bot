@@ -29,7 +29,10 @@ logging.basicConfig(
 logger = logging.getLogger("IHotelBot")
 
 # เก็บประวัติการแชทชั่วคราวใน Memory (sender_id -> list of messages)
+import time
 chat_sessions: Dict[str, List[dict]] = {}
+processed_mids = set()
+last_reply_tracker = {}
 
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "ihotel_khonkaen_secure_token_2026")
 PORT = int(os.getenv("PORT", "8000"))
@@ -112,7 +115,17 @@ def handle_payload_action(sender_id: str, payload: str):
 
 def process_user_message(sender_id: str, message_text: str):
     """ประมวลผลข้อความที่ลูกค้าพิมพ์ส่งมา"""
-    logger.info(f"ข้อความจาก User [{sender_id}]: {message_text}")
+    text = message_text.strip()
+    now = time.time()
+    last_info = last_reply_tracker.get(sender_id)
+    
+    # ป้องกันกรณีลูกค้าส่งข้อความเดิมซ้ำติดๆ กัน หรือระบบยิงซ้ำภายใน 8 วินาที
+    if last_info:
+        if last_info.get("user_text") == text and (now - last_info.get("time", 0)) < 8:
+            logger.info(f"ข้ามการตอบซ้ำข้อความเดิมติดกันจาก {sender_id}")
+            return
+
+    logger.info(f"ข้อความจาก User [{sender_id}]: {text}")
     
     # 1. แจ้งเตือนสถานะอ่านแล้ว & กำลังพิมพ์
     facebook_service.mark_seen(sender_id)
@@ -122,19 +135,25 @@ def process_user_message(sender_id: str, message_text: str):
     if sender_id not in chat_sessions:
         chat_sessions[sender_id] = []
     
-    chat_sessions[sender_id].append({"sender": "user", "text": message_text})
+    chat_sessions[sender_id].append({"sender": "user", "text": text})
     
     # 3. ให้ Gemini AI ช่วยประมวลผลคำตอบ
-    reply = gemini_service.generate_reply(message_text, chat_sessions[sender_id])
+    reply = gemini_service.generate_reply(text, chat_sessions[sender_id])
     
+    # ป้องกันบอทส่งคำตอบเดิมเป๊ะๆ ซ้ำรัวๆ ในเวลาใกล้กัน (ภายใน 10 วินาที)
+    if last_info and last_info.get("bot_reply") == reply and (now - last_info.get("time", 0)) < 10:
+        logger.info(f"ข้ามการส่งคำตอบเดิมซ้ำรัวๆ ให้กับ {sender_id}")
+        return
+
     # 4. บันทึกคำตอบกลับ
     chat_sessions[sender_id].append({"sender": "bot", "text": reply})
+    last_reply_tracker[sender_id] = {"user_text": text, "bot_reply": reply, "time": now}
     
     # 5. ส่งข้อความกลับหาผู้ใช้
     facebook_service.send_text_message(sender_id, reply, with_quick_replies=True)
     
     # 6. หากลูกค้าถามหารูปภาพห้องพัก หรือถามห้อง 3-4 ท่าน ให้ส่งรูปจริงประกอบไปด้วย
-    lower_text = message_text.lower()
+    lower_text = text.lower()
     triple_quad_keywords = ["3 คน", "3คน", "สามคน", "3 ท่าน", "3ท่าน", "สามท่าน", "4 คน", "4คน", "สี่คน", "4 ท่าน", "4ท่าน", "สี่ท่าน", "grand deluxe", "แกรนด์", "triple", "1600", "1800", "ครอบครัว"]
     
     if any(w in lower_text for w in triple_quad_keywords):
@@ -286,6 +305,18 @@ try:
                     # กรณีเป็นข้อความ Text ทั่วไป
                     if "message" in messaging_event:
                         msg_obj = messaging_event["message"]
+                        
+                        if msg_obj.get("is_echo"):
+                            continue
+                            
+                        mid = msg_obj.get("mid")
+                        if mid:
+                            if mid in processed_mids:
+                                logger.info(f"ข้ามข้อความซ้ำ (mid={mid})")
+                                continue
+                            processed_mids.add(mid)
+                            if len(processed_mids) > 1000:
+                                processed_mids.clear()
                         
                         # ตรวจสอบว่าเป็นการกดปุ่ม Quick Reply หรือไม่
                         if "quick_reply" in msg_obj:

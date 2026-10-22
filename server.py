@@ -124,12 +124,16 @@ class FacebookWebhookHandler(BaseHTTPRequestHandler):
                         if not sender_id:
                             continue
 
+                        # ข้าม Event ประเภทอ่านข้อความ (read) หรือส่งถึง (delivery) เพื่อไม่ให้ทำงานซ้ำ
+                        if "read" in messaging_event or "delivery" in messaging_event:
+                            continue
+
                         # จัดการข้อความทั่วไป
                         if "message" in messaging_event:
                             msg_obj = messaging_event["message"]
                             
-                            # ข้ามข้อความ Echo จากเพจตัวเอง
-                            if msg_obj.get("is_echo"):
+                            # ข้ามข้อความ Echo จากเพจตัวเอง หรือข้อความจากแอดมินเพจ
+                            if msg_obj.get("is_echo") or msg_obj.get("app_id"):
                                 continue
                                 
                             # ป้องกันการประมวลผลข้อความเดิมซ้ำ (Deduplication ด้วย mid)
@@ -149,6 +153,9 @@ class FacebookWebhookHandler(BaseHTTPRequestHandler):
                             elif "text" in msg_obj:
                                 text = msg_obj["text"].strip()
                                 self._process_text(sender_id, text)
+                            elif "attachments" in msg_obj:
+                                # กรณีลูกค้าส่งสติกเกอร์ รูปภาพ หรือไฟล์เสียงอย่างเดียว
+                                self._process_attachment(sender_id, msg_obj["attachments"])
                                 
                         # จัดการ Postback Buttons
                         elif "postback" in messaging_event:
@@ -213,6 +220,21 @@ class FacebookWebhookHandler(BaseHTTPRequestHandler):
 
 
 
+
+    def _process_attachment(self, sender_id: str, attachments: list):
+        now = time.time()
+        last_info = last_reply_tracker.get(sender_id)
+        if last_info and (now - last_info.get("time", 0)) < 10:
+            return
+        # ข้ามกรณีเป็นสติกเกอร์ถูกใจ (Thumbs up sticker ID ของ Messenger) เพื่อไม่ให้กวนลูกค้า
+        for att in attachments:
+            payload = att.get("payload", {})
+            if payload.get("sticker_id") in [369239263222822, 369239343222814, 369239383222810]:
+                facebook_service.mark_seen(sender_id)
+                return
+        reply = "ขอสอบถามเพิ่มเติมนิดหนึ่งค่ะ ต้องการทราบข้อมูลเรื่องไหนเป็นพิเศษคะ 😊"
+        last_reply_tracker[sender_id] = {"user_text": "[attachment]", "bot_reply": reply, "time": now}
+        facebook_service.send_text_message(sender_id, reply, with_quick_replies=True)
 
     def _handle_payload(self, sender_id: str, payload: str):
         from main import handle_payload_action

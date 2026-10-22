@@ -44,54 +44,42 @@ def handle_payload_action(sender_id: str, payload: str):
     logger.info(f"รับ Payload จาก User {sender_id}: {payload}")
     
     if payload == "QR_ROOMS_AND_PRICES":
-        facebook_service.send_text_message(sender_id, "🏨 ด้านล่างนี้คือประเภทห้องพักและราคาของ I Hotel Khonkaen ค่ะ:")
+        facebook_service.send_text_message(sender_id, "ประเภทห้องพักและราคาของ I Hotel Khonkaen ค่ะ 😊")
         facebook_service.send_room_carousel(sender_id)
         
     elif payload == "QR_LOCATION_MAP":
         location_msg = (
-            f"📍 แผนที่และการเดินทางมายัง {HOTEL_INFO['name_th']} ค่ะ 🚗✨\n\n"
-            f"🏢 ที่อยู่: {HOTEL_INFO['location']['address']}\n"
-            f"(ติดถนนมิตรภาพ ใกล้โลตัสโนนม่วง / มข.)\n\n"
-            f"⏱️ ระยะทางไปยังสถานที่สำคัญ:\n"
-            f"• โลตัส โนนม่วง (ขอนแก่น 3): 1-2 นาที (~500 ม.)\n"
-            f"• มหาวิทยาลัยขอนแก่น (มข.): 5-10 นาที (~3-4 กม.)\n"
-            f"• โรงพยาบาลศรีนครินทร์: 8-10 นาที (~4-5 กม.)\n"
-            f"• เซ็นทรัล แคมปัส (Central Campus): 5-7 นาที (~3-4 กม.)\n"
+            f"📍 โรงแรมตั้งอยู่ติดถนนมิตรภาพ ต.ศิลา อ.เมืองขอนแก่น ใกล้โลตัสโนนม่วงประมาณ 500 เมตรค่ะ 😊\n\n"
+            f"• โลตัส โนนม่วง: 1-2 นาที (~500 ม.)\n"
+            f"• มข. / เซ็นทรัลแคมปัส: 5-10 นาที (~3-4 กม.)\n"
+            f"• รพ.ศรีนครินทร์: 8-10 นาที (~4-5 กม.)\n"
             f"• เซ็นทรัลพลาซา ขอนแก่น: 12-15 นาที (~7-8 กม.)\n"
-            f"• สนามบินนานาชาติขอนแก่น: 15-20 นาที (~10-12 กม.)\n\n"
-            f"🗺️ แผนที่ Google Maps: {HOTEL_INFO['location']['google_maps_url']}\n"
-            f"☎️ สอบถามเส้นทางโทร: {HOTEL_INFO['contact']['phone']} ได้ตลอด 24 ชม. ค่ะ"
+            f"• สนามบินขอนแก่น: 15-20 นาที (~10-12 กม.)\n\n"
+            f"🗺️ แผนที่ Google Maps: {HOTEL_INFO['location']['google_maps_url']}"
         )
         facebook_service.send_text_message(sender_id, location_msg)
         
     elif payload == "QR_CHECKIN_INFO":
         checkin_msg = (
-            f"🕒 ข้อมูลเวลาเช็คอิน - เช็คเอาท์ ค่ะ ✨\n\n"
-            f"👉 เช็คอินได้ตั้งแต่: {HOTEL_INFO['policies']['check_in']}\n"
-            f"👉 เช็คเอาท์ก่อน: {HOTEL_INFO['policies']['check_out']}\n"
-            f"👉 แผนกต้อนรับบริการตลอด 24 ชม. มีเจ้าหน้าที่คอยดูแลตลอดเวลาค่ะ ✨"
+            f"เวลาเช็กอินตั้งแต่ 14:00 น. และเช็กเอาต์ก่อน 12:00 น. ค่ะ 😊\n"
+            f"แผนกต้อนรับเปิดบริการตลอด 24 ชั่วโมงค่ะ"
         )
         facebook_service.send_text_message(sender_id, checkin_msg)
         
     elif payload == "QR_AMENITIES_BREAKFAST":
         breakfast_msg = (
-            f"🍳 ข้อมูลอาหารเช้าแบบบุฟเฟต์ (Buffet Breakfast) {HOTEL_INFO['name_th']} ค่ะ ✨\n\n"
-            f"⏰ เวลาให้บริการ: {HOTEL_INFO['breakfast_info']['service_time']} (06:30 - 10:00 น.)\n"
-            f"🍽️ เมนูในไลน์บุฟเฟต์: ขนมปัง, น้ำผลไม้, อาหารไทยตามฤดูกาล, สลัดบาร์, เมนูทอดร้อนๆ เช่น ไข่กระทะ ไส้กรอก แฮม, กาแฟสดชงสดใหม่\n\n"
-            f"💵 ราคาอาหารเช้า:\n"
-            f"• ห้อง Deluxe / Grand Deluxe: รวมอาหารเช้าฟรีค่ะ\n"
-            f"• ห้อง Superior: ซื้อเพิ่มพร้อมห้องเพียง {HOTEL_INFO['breakfast_info']['price_with_room']} (ซื้อหลังจอง {HOTEL_INFO['breakfast_info']['price_after_booking']}) ค่ะ"
+            f"อาหารเช้าบุฟเฟต์ให้บริการเวลา 06:30 - 10:00 น. ค่ะ 😊\n"
+            f"มีไข่กระทะ อาหารไทยปรุงสด สลัดบาร์ ขนมปัง กาแฟสด และน้ำผลไม้\n\n"
+            f"• ห้อง Deluxe และ Grand Deluxe: รวมอาหารเช้าฟรีแล้วค่ะ\n"
+            f"• ห้อง Superior (750 บ.): ไม่รวมอาหารเช้า ซื้อเพิ่มได้ท่านละ 100 บาทค่ะ"
         )
         facebook_service.send_text_message(sender_id, breakfast_msg)
         facebook_service.send_breakfast_photos(sender_id)
         
     elif payload == "QR_CONTACT_STAFF":
         contact_msg = (
-            f"📞 ช่องทางการติดต่อเจ้าหน้าที่ {HOTEL_INFO['name_th']}\n\n"
-            f"☎️ โทร: {HOTEL_INFO['contact']['phone']}\n"
-            f"💬 Line OA: {HOTEL_INFO['contact']['line_oa']}\n"
-            f"📍 ที่ตั้ง: {HOTEL_INFO['location']['address']}\n\n"
-            f"สามารถพิมพ์คำถามหรือแจ้งเรื่องที่ต้องการให้ช่วยเหลือไว้ในแชทนี้ได้เลยนะคะ น้องไอและทีมงานยินดีดูแลค่ะ 😊"
+            f"สามารถติดต่อเจ้าหน้าที่ได้ทาง LINE OA: @ihotelkk (คลิก: https://line.me/R/ti/p/@ihotelkk) "
+            f"หรือโทร {HOTEL_INFO['contact']['phone']} ได้ตลอด 24 ชม. ค่ะ 😊"
         )
         facebook_service.send_text_message(sender_id, contact_msg)
         
@@ -99,12 +87,8 @@ def handle_payload_action(sender_id: str, payload: str):
         room_id = payload.replace("BOOK_ROOM_", "")
         room_name = next((r["name"] for r in HOTEL_INFO["rooms"] if r["id"] == room_id), "ห้องพัก")
         booking_prompt = (
-            f"ยินดีต้อนรับค่ะ สำหรับการจองห้องพัก {room_name} 🛏️✨\n\n"
-            f"🏨 การจองห้องพักของโรงแรม I Hotel Khonkaen ลูกค้าจะต้องดำเนินการจองผ่าน LINE OA เท่านั้นนะคะ เพื่อความสะดวกรวดเร็วในการเช็คห้องว่างและยืนยันการจองค่ะ\n\n"
-            f"📲 **คลิกเพื่อจองผ่าน LINE OA:**\n"
-            f"👉 https://line.me/R/ti/p/@ihotelkk\n"
-            f"(หรือค้นหา ID LINE: @ihotelkk)\n\n"
-            f"☎️ สอบถามข้อมูลเพิ่มเติมโทร: {HOTEL_INFO['contact']['phone']} ได้ตลอด 24 ชม. ค่ะ"
+            f"สำหรับการจองห้องพัก {room_name} รบกวนติดต่อผ่าน LINE OA: @ihotelkk เท่านั้นนะคะ 😊\n"
+            f"👉 คลิก: https://line.me/R/ti/p/@ihotelkk"
         )
         facebook_service.send_text_message(sender_id, booking_prompt)
         
@@ -301,12 +285,15 @@ try:
                     
                     if not sender_id:
                         continue
+
+                    if "read" in messaging_event or "delivery" in messaging_event:
+                        continue
                         
                     # กรณีเป็นข้อความ Text ทั่วไป
                     if "message" in messaging_event:
                         msg_obj = messaging_event["message"]
                         
-                        if msg_obj.get("is_echo"):
+                        if msg_obj.get("is_echo") or msg_obj.get("app_id"):
                             continue
                             
                         mid = msg_obj.get("mid")
@@ -325,6 +312,20 @@ try:
                         elif "text" in msg_obj:
                             text = msg_obj["text"]
                             process_user_message(sender_id, text)
+                        elif "attachments" in msg_obj:
+                            now = time.time()
+                            last_info = last_reply_tracker.get(sender_id)
+                            if not (last_info and (now - last_info.get("time", 0)) < 10):
+                                is_thumb = any(
+                                    att.get("payload", {}).get("sticker_id") in [369239263222822, 369239343222814, 369239383222810]
+                                    for att in msg_obj["attachments"]
+                                )
+                                if is_thumb:
+                                    facebook_service.mark_seen(sender_id)
+                                else:
+                                    reply = "ขอสอบถามเพิ่มเติมนิดหนึ่งค่ะ ต้องการทราบข้อมูลเรื่องไหนเป็นพิเศษคะ 😊"
+                                    last_reply_tracker[sender_id] = {"user_text": "[attachment]", "bot_reply": reply, "time": now}
+                                    facebook_service.send_text_message(sender_id, reply, with_quick_replies=True)
                             
                     # กรณีเป็นการกดปุ่ม Postback (เช่น ปุ่มบน Card หรือ Get Started)
                     elif "postback" in messaging_event:

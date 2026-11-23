@@ -1,0 +1,15 @@
+name: Render Keep-Alive (Zero Cold-Start)
+
+on:
+  schedule:
+    # ยิงเช็คเซิร์ฟเวอร์ทุกๆ 10 นาที เพื่อป้องกัน Render Free Tier เข้าโหมดหลับ
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Webhook Health Endpoint
+        run: |
+          curl -fsSL --retry 3 --max-time 15 https://ihotel-facebook-bot.onrender.com/health || true

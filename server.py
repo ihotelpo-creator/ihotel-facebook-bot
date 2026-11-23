@@ -8,6 +8,8 @@ import os
 import time
 import json
 import logging
+import threading
+import urllib.request
 from urllib.parse import urlparse, parse_qs
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -25,10 +27,130 @@ logger = logging.getLogger("IHotelBotServer")
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "ihotel_khonkaen_secure_token_2026")
 PORT = int(os.getenv("PORT", "8000"))
 HOST = os.getenv("HOST", "0.0.0.0")
+RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL", "https://ihotel-facebook-bot.onrender.com")
+DEBOUNCE_SECONDS = float(os.getenv("DEBOUNCE_SECONDS", "2.5"))
 
 chat_sessions = {}
 processed_mids = set()  # ป้องกันการตอบซ้ำจาก Facebook Webhook Retry
 last_reply_tracker = {}  # เก็บเวลาและข้อความล่าสุดของแต่ละ user ป้องกันการตอบซ้ำรัวๆ
+pending_buffers = {}     # เก็บข้อความที่ลูกค้าพิมพ์แยกหลายบรรทัดติดกัน (sender_id -> list of texts)
+pending_timers = {}      # เก็บ Timer สำหรับหน่วงเวลารวมข้อความ (sender_id -> threading.Timer)
+buffer_lock = threading.Lock()
+
+
+def enqueue_user_message(sender_id: str, text: str):
+    """
+    ระบบรวมข้อความเมื่อลูกค้าพิมพ์แยกหลายบรรทัดติดกัน (Message Debouncing 2.5 วินาที)
+    หากลูกค้าพิมพ์ข้อความต่อเนื่องภายใน 2.5 วินาที ระบบจะรวบทุกบรรทัดเป็นข้อความเดียวแล้วตอบครั้งเดียว
+    """
+    text = text.strip()
+    if not text:
+        return
+
+    with buffer_lock:
+        if sender_id not in pending_buffers:
+            pending_buffers[sender_id] = []
+            # แจ้งสถานะอ่านแล้วและกำลังพิมพ์ตั้งแต่ข้อความแรก เพื่อให้ลูกค้ารู้ว่าบอทกำลังฟังอยู่
+            threading.Thread(target=facebook_service.mark_seen, args=(sender_id,), daemon=True).start()
+            threading.Thread(target=facebook_service.send_typing_indicator, args=(sender_id, True), daemon=True).start()
+
+        # ป้องกันกรณีลูกค้าเผลอกดส่งประโยคเดิมซ้ำในบัฟเฟอร์เดียวกัน
+        if not pending_buffers[sender_id] or pending_buffers[sender_id][-1] != text:
+            pending_buffers[sender_id].append(text)
+
+        # ยกเลิก Timer เดิมแล้วนับเวลาใหม่ 2.5 วินาทีหลังจากข้อความล่าสุด
+        existing_timer = pending_timers.get(sender_id)
+        if existing_timer:
+            existing_timer.cancel()
+
+        timer = threading.Timer(DEBOUNCE_SECONDS, _flush_user_messages, args=(sender_id,))
+        timer.daemon = True
+        pending_timers[sender_id] = timer
+        timer.start()
+
+
+def _flush_user_messages(sender_id: str):
+    """นำข้อความทั้งหมดที่รวบรวมได้ในช่วง 2.5 วินาที มาประมวลผลและตอบกลับในครั้งเดียว"""
+    with buffer_lock:
+        messages = pending_buffers.pop(sender_id, [])
+        pending_timers.pop(sender_id, None)
+
+    if not messages:
+        return
+
+    combined_text = "\n".join(messages)
+    logger.info(f"ประมวลผลข้อความรวม ({len(messages)} บรรทัด) จาก {sender_id}: {combined_text!r}")
+    process_combined_text(sender_id, combined_text)
+
+
+def process_combined_text(sender_id: str, text: str):
+    """ประมวลผลข้อความที่รวมแล้วและส่งคำตอบกลับทาง Facebook Messenger"""
+    now = time.time()
+    last_info = last_reply_tracker.get(sender_id)
+
+    # ป้องกันกรณีลูกค้าส่งข้อความเดิมซ้ำติดๆ กัน หรือระบบยิงซ้ำภายใน 8 วินาที
+    if last_info:
+        if last_info.get("user_text") == text and (now - last_info.get("time", 0)) < 8:
+            logger.info(f"ข้ามการตอบซ้ำข้อความเดิมติดกันจาก {sender_id}")
+            return
+
+    if sender_id not in chat_sessions:
+        chat_sessions[sender_id] = []
+
+    chat_sessions[sender_id].append({"sender": "user", "text": text})
+    reply = gemini_service.generate_reply(text, chat_sessions[sender_id])
+
+    # ป้องกันบอทส่งคำตอบเดิมเป๊ะๆ ซ้ำรัวๆ ในเวลาใกล้กัน (ภายใน 10 วินาที)
+    if last_info and last_info.get("bot_reply") == reply and (now - last_info.get("time", 0)) < 10:
+        logger.info(f"ข้ามการส่งคำตอบเดิมซ้ำรัวๆ ให้กับ {sender_id}")
+        return
+
+    chat_sessions[sender_id].append({"sender": "bot", "text": reply})
+    last_reply_tracker[sender_id] = {"user_text": text, "bot_reply": reply, "time": now}
+
+    facebook_service.send_text_message(sender_id, reply, with_quick_replies=True)
+
+    lower_text = text.lower()
+    triple_quad_keywords = ["3 คน", "3คน", "สามคน", "3 ท่าน", "3ท่าน", "สามท่าน", "4 คน", "4คน", "สี่คน", "4 ท่าน", "4ท่าน", "สี่ท่าน", "grand deluxe", "แกรนด์", "triple", "1600", "1800", "ครอบครัว"]
+
+    if any(w in lower_text for w in triple_quad_keywords):
+        facebook_service.send_grand_deluxe_triple_photos(sender_id)
+    elif any(w in lower_text for w in ["รูป", "ภาพ", "photo", "picture", "ดูห้อง", "หน้าตาห้อง", "ห้องเป็นยังไง", "ตึก", "ฟร้อน", "ล็อบบี้", "อาหารเช้า", "บุฟเฟ่", "breakfast"]):
+        if any(w in lower_text for w in ["อาหารเช้า", "บุฟเฟ่", "กินข้าว", "breakfast", "สลัด", "ไข่กระทะ"]):
+            facebook_service.send_breakfast_photos(sender_id)
+        elif any(w in lower_text for w in ["ตึก", "อาคาร", "โรงแรม", "ภายนอก", "ข้างนอก", "building"]):
+            facebook_service.send_hotel_building_photos(sender_id)
+        elif any(w in lower_text for w in ["ฟร้อน", "ฟร้อนท์", "ล็อบบี้", "lobby", "front", "เคาน์เตอร์"]):
+            facebook_service.send_lobby_photos(sender_id)
+        elif any(w in lower_text for w in ["deluxe", "ดีลักซ์", "1000", "ผ้าดูเว่"]):
+            facebook_service.send_deluxe_photos(sender_id)
+        elif any(w in lower_text for w in ["superior", "สุพีเรีย", "750", "28"]):
+            facebook_service.send_superior_photos(sender_id)
+        else:
+            facebook_service.send_hotel_building_photos(sender_id)
+            facebook_service.send_superior_photos(sender_id)
+            facebook_service.send_deluxe_photos(sender_id)
+
+
+def start_keep_alive_daemon():
+    """
+    ระบบ Keep-Alive ป้องกันเซิร์ฟเวอร์ Render หลับ (Zero Cold-Start Delay)
+    ยิง HTTP GET ไปที่ /health ทุกๆ 10 นาที (600 วินาที) เพื่อให้ Render Instance ตื่นตลอด 24 ชม.
+    """
+    def _ping_loop():
+        ping_url = f"{RENDER_EXTERNAL_URL.rstrip('/')}/health"
+        while True:
+            time.sleep(600)  # ทุก 10 นาที
+            try:
+                req = urllib.request.Request(ping_url, headers={"User-Agent": "IHotel-KeepAlive/1.0"})
+                with urllib.request.urlopen(req, timeout=10, context=facebook_service.SSL_CONTEXT) as resp:
+                    logger.info(f"🟢 Keep-Alive ping สำเร็จ ({ping_url}): status={resp.status}")
+            except Exception as e:
+                logger.debug(f"Keep-Alive ping warning: {e}")
+
+    t = threading.Thread(target=_ping_loop, daemon=True)
+    t.start()
+    logger.info(f"⚡ เริ่มระบบ Keep-Alive ป้องกันเซิร์ฟเวอร์หลับ (Ping ทุก 10 นาที ไปยัง {RENDER_EXTERNAL_URL}/health)")
 
 class FacebookWebhookHandler(BaseHTTPRequestHandler):
     def _send_response(self, content: str, content_type: str = "text/html", status_code: int = 200):
@@ -41,6 +163,11 @@ class FacebookWebhookHandler(BaseHTTPRequestHandler):
         parsed_url = urlparse(self.path)
         path = parsed_url.path
         query_params = parse_qs(parsed_url.query)
+
+        # หน้า Health Check สำหรับระบบ Keep-Alive (Zero Cold-Start Delay)
+        if path == "/health" or path == "/ping":
+            self._send_response(json.dumps({"status": "ok", "service": "ihotel-facebook-bot", "timestamp": int(time.time())}), "application/json", 200)
+            return
 
         # หน้าแรก Health Check
         if path == "/" or path == "":
@@ -152,7 +279,7 @@ class FacebookWebhookHandler(BaseHTTPRequestHandler):
                                 self._handle_payload(sender_id, payload)
                             elif "text" in msg_obj:
                                 text = msg_obj["text"].strip()
-                                self._process_text(sender_id, text)
+                                enqueue_user_message(sender_id, text)
                             elif "attachments" in msg_obj:
                                 # กรณีลูกค้าส่งสติกเกอร์ รูปภาพ หรือไฟล์เสียงอย่างเดียว
                                 self._process_attachment(sender_id, msg_obj["attachments"])
@@ -242,6 +369,7 @@ class FacebookWebhookHandler(BaseHTTPRequestHandler):
 
 
 def run_server():
+    start_keep_alive_daemon()
     server_address = (HOST, PORT)
     httpd = HTTPServer(server_address, FacebookWebhookHandler)
     print("=" * 60)

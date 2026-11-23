@@ -182,8 +182,15 @@ def generate_reply(user_message: str, chat_history: list = None) -> str:
         return "ยินดีค่ะ 😊"
 
     # 2. กรณีลูกค้าทักทายสั้นๆ อย่างเดียว
-    if msg_lower in ["สวัสดี", "สวัสดีค่ะ", "สวัสดีครับ", "ดีค่ะ", "ดีครับ", "hello", "hi", "ทักครับ", "ทักค่ะ"]:
+    greeting_words = ["สวัสดี", "สวัสดีค่ะ", "สวัสดีครับ", "ดีค่ะ", "ดีครับ", "hello", "hi", "ทักครับ", "ทักค่ะ"]
+    if msg_lower in greeting_words:
         return "สวัสดีค่ะ 😊 ยินดีต้อนรับสู่ I Hotel Khonkaen ค่ะ"
+
+    # หากลูกค้าพิมพ์ทักทายแยกบรรทัดตามด้วยคำถาม (เช่น "สวัสดีค่ะ\nมีห้องสามคนไหม") ให้ตัดคำทักทายขึ้นต้นออกก่อนเช็คคำถามหลัก
+    lines = [line.strip() for line in msg_clean.splitlines() if line.strip()]
+    if len(lines) > 1 and lines[0].lower() in greeting_words:
+        msg_clean_without_greeting = "\n".join(lines[1:]).strip()
+        msg_lower = msg_clean_without_greeting.lower()
 
     # 3. ตรวจสอบคำถามเฉพาะเรื่องห้อง 3 คน / 4 คน (เมื่อไม่ได้เป็นการถามเปลี่ยนวันหรือเรื่องอื่น)
     is_three = any(w in msg_lower for w in ["3 คน", "3คน", "สามคน", "3 ท่าน", "3ท่าน", "สามท่าน", "triple", "1600"])

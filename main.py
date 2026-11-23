@@ -30,13 +30,81 @@ logger = logging.getLogger("IHotelBot")
 
 # เก็บประวัติการแชทชั่วคราวใน Memory (sender_id -> list of messages)
 import time
+import threading
+import urllib.request
+
 chat_sessions: Dict[str, List[dict]] = {}
 processed_mids = set()
 last_reply_tracker = {}
+pending_buffers: Dict[str, List[str]] = {}
+pending_timers: Dict[str, threading.Timer] = {}
+buffer_lock = threading.Lock()
 
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "ihotel_khonkaen_secure_token_2026")
 PORT = int(os.getenv("PORT", "8000"))
 HOST = os.getenv("HOST", "0.0.0.0")
+RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL", "https://ihotel-facebook-bot.onrender.com")
+DEBOUNCE_SECONDS = float(os.getenv("DEBOUNCE_SECONDS", "2.5"))
+
+
+def enqueue_user_message(sender_id: str, message_text: str):
+    """
+    ระบบรวมข้อความเมื่อลูกค้าพิมพ์แยกหลายบรรทัดติดกัน (Message Debouncing 2.5 วินาที)
+    """
+    text = message_text.strip()
+    if not text:
+        return
+
+    with buffer_lock:
+        if sender_id not in pending_buffers:
+            pending_buffers[sender_id] = []
+            threading.Thread(target=facebook_service.mark_seen, args=(sender_id,), daemon=True).start()
+            threading.Thread(target=facebook_service.send_typing_indicator, args=(sender_id, True), daemon=True).start()
+
+        if not pending_buffers[sender_id] or pending_buffers[sender_id][-1] != text:
+            pending_buffers[sender_id].append(text)
+
+        existing_timer = pending_timers.get(sender_id)
+        if existing_timer:
+            existing_timer.cancel()
+
+        timer = threading.Timer(DEBOUNCE_SECONDS, _flush_user_messages, args=(sender_id,))
+        timer.daemon = True
+        pending_timers[sender_id] = timer
+        timer.start()
+
+
+def _flush_user_messages(sender_id: str):
+    with buffer_lock:
+        messages = pending_buffers.pop(sender_id, [])
+        pending_timers.pop(sender_id, None)
+
+    if not messages:
+        return
+
+    combined_text = "\n".join(messages)
+    logger.info(f"ประมวลผลข้อความรวม ({len(messages)} บรรทัด) จาก {sender_id}: {combined_text!r}")
+    process_user_message(sender_id, combined_text)
+
+
+def start_keep_alive_daemon():
+    """
+    ระบบ Keep-Alive ป้องกันเซิร์ฟเวอร์ Render หลับ (Zero Cold-Start Delay)
+    """
+    def _ping_loop():
+        ping_url = f"{RENDER_EXTERNAL_URL.rstrip('/')}/health"
+        while True:
+            time.sleep(600)
+            try:
+                req = urllib.request.Request(ping_url, headers={"User-Agent": "IHotel-KeepAlive/1.0"})
+                with urllib.request.urlopen(req, timeout=10, context=facebook_service.SSL_CONTEXT) as resp:
+                    logger.info(f"🟢 Keep-Alive ping สำเร็จ ({ping_url}): status={resp.status}")
+            except Exception as e:
+                logger.debug(f"Keep-Alive ping warning: {e}")
+
+    t = threading.Thread(target=_ping_loop, daemon=True)
+    t.start()
+    logger.info(f"⚡ เริ่มระบบ Keep-Alive ป้องกันเซิร์ฟเวอร์หลับ (Ping ทุก 10 นาที ไปยัง {RENDER_EXTERNAL_URL}/health)")
 
 
 def handle_payload_action(sender_id: str, payload: str):
@@ -172,6 +240,15 @@ try:
     from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse
     
     app = FastAPI(title="I Hotel Khonkaen Facebook Bot", version="1.0.0")
+
+    @app.on_event("startup")
+    async def on_startup():
+        start_keep_alive_daemon()
+
+    @app.get("/health")
+    @app.get("/ping")
+    async def health_check():
+        return JSONResponse(content={"status": "ok", "service": "ihotel-facebook-bot", "timestamp": int(time.time())}, status_code=200)
 
     @app.get("/", response_class=HTMLResponse)
     async def index():
@@ -311,7 +388,7 @@ try:
                             handle_payload_action(sender_id, payload)
                         elif "text" in msg_obj:
                             text = msg_obj["text"]
-                            process_user_message(sender_id, text)
+                            enqueue_user_message(sender_id, text)
                         elif "attachments" in msg_obj:
                             now = time.time()
                             last_info = last_reply_tracker.get(sender_id)

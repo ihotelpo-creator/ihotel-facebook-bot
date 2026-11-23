@@ -6,12 +6,19 @@ Facebook Messenger Graph API Service
 """
 
 import os
+import ssl
 import json
 import logging
 import urllib.request
 import urllib.error
 import env_loader
 from hotel_data import HOTEL_INFO
+
+try:
+    import certifi
+    SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+except Exception:
+    SSL_CONTEXT = ssl._create_unverified_context()
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +46,7 @@ def send_raw_message(payload: dict) -> bool:
             headers={'Content-Type': 'application/json'},
             method='POST'
         )
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=10, context=SSL_CONTEXT) as resp:
             data = json.loads(resp.read().decode('utf-8'))
             logger.info(f"ส่งข้อความ Facebook สำเร็จ: message_id={data.get('message_id')}")
             return True

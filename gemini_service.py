@@ -5,12 +5,19 @@ Gemini AI Service สำหรับตอบข้อความลูกค�
 """
 
 import os
+import ssl
 import json
 import logging
 import urllib.request
 import urllib.error
 import env_loader
 from hotel_data import get_hotel_knowledge_prompt, HOTEL_INFO
+
+try:
+    import certifi
+    SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+except Exception:
+    SSL_CONTEXT = ssl._create_unverified_context()
 
 logger = logging.getLogger(__name__)
 
@@ -252,7 +259,7 @@ def generate_reply(user_message: str, chat_history: list = None) -> str:
             method='POST'
         )
 
-        with urllib.request.urlopen(req, timeout=6) as response:
+        with urllib.request.urlopen(req, timeout=6, context=SSL_CONTEXT) as response:
             result = json.loads(response.read().decode('utf-8'))
             candidates = result.get("candidates", [])
             if candidates:
@@ -294,8 +301,24 @@ def fallback_rule_based_reply(user_message: str, chat_history: list = None) -> s
         return "เรื่องเลื่อนหรือยกเลิกการจอง รบกวนติดต่อ LINE OA: @ihotelkk เพื่อให้ทีมงานตรวจสอบรายละเอียดการจองและเงื่อนไขให้ค่ะ"
 
     # ร้องเรียน / แจ้งปัญหา
-    if any(w in msg for w in ["ร้องเรียน", "ไม่พอใจ", "แย่", "เสียงดัง", "เสีย", "พัง", "สกปรก", "แอร์ไม่เย็น", "น้ำไม่ไหล"]):
+    if any(w in msg for w in ["ร้องเรียน", "ไม่พอใจ", "แย่", "เสียงดัง", "เสีย", "พัง", "สกปรก", "ไม่เย็น", "ไม่ไหล", "ไฟดับ", "เหม็น"]):
         return "ขออภัยที่ทำให้ไม่สะดวกนะคะ ขอทราบรายละเอียดเพิ่มเติมสักนิดได้ไหมคะ จะได้ประสานให้ทีมงานช่วยตรวจสอบค่ะ"
+
+    # ใบกำกับภาษี / ใบเสร็จ
+    if any(w in msg for w in ["ใบกำกับภาษี", "ใบเสร็จ", "บิลเบิก", "เบิกราชการ"]):
+        return "เรื่องการออกใบกำกับภาษีหรือบิลเบิก รบกวนแจ้งรายละเอียดกับเจ้าหน้าที่ทาง LINE OA: @ihotelkk ตอนทำการจองได้เลยนะคะ 😊"
+
+    # สิ่งอำนวยความสะดวกที่โรงแรมไม่มี (สระว่ายน้ำ / ฟิตเนส)
+    if any(w in msg for w in ["สระว่ายน้ำ", "ฟิตเนส", "สปา", "ซาวน่า", "pool", "gym", "fitness"]):
+        return "ทางโรงแรมไม่มีบริการสระว่ายน้ำและฟิตเนสค่ะ 😊"
+
+    # เตียงเสริม
+    if any(w in msg for w in ["เตียงเสริม", "เสริมเตียง", "extra bed"]):
+        return "หากเข้าพัก 3 หรือ 4 ท่าน แนะนำเป็นห้อง Grand Deluxe Triple (3 ท่าน 1,600 บาท) หรือ Grand Deluxe 4 ท่าน (1,800 บาท) ซึ่งรวมอาหารเช้าครบทุกท่านแล้วค่ะ 😊"
+
+    # คำถามต่อเนื่องเรื่องเปลี่ยนวันเข้าพัก (เช่น "แล้วถ้าเป็น 21-23 ล่ะ")
+    if any(w in msg for w in ["แล้วถ้า", "ถ้าเป็น", "เปลี่ยนเป็น"]) and any(d in msg for d in ["วันที่", "-", "ถึง", "มกรา", "กุมภา", "มีนา", "เมษา", "พฤษภา", "มิถุนา", "กรกฎา", "สิงหา", "กันยา", "ตุลา", "พฤศจิกา", "ธันวา", "พรุ่งนี้", "เสาร์", "อาทิตย์"]):
+        return "สำหรับวันที่ต้องการเข้าพัก รบกวนตรวจสอบห้องว่างผ่าน LINE OA: @ihotelkk ได้เลยค่ะ 😊"
 
     # 1. กรณีถามทั้ง 3 และ 4 คนพร้อมกัน หรือถามห้องครอบครัวทั่วไป
     if (is_three and is_four) or any(w in msg for w in ["ครอบครัว", "หลายท่าน", "หลายคน"]):
@@ -365,6 +388,14 @@ def fallback_rule_based_reply(user_message: str, chat_history: list = None) -> s
 
     # อาหารเช้า
     elif any(w in msg for w in ["อาหารเช้า", "breakfast", "บุฟเฟ่", "บุฟเฟต์", "กินข้าว", "ไข่กระทะ", "กาแฟ"]):
+        if "750" in msg or "superior" in msg or "สุพีเรีย" in msg:
+            return "ห้อง Superior ราคา 750 บาท ไม่รวมอาหารเช้าค่ะ หากต้องการทานอาหารเช้าบุฟเฟต์ (06:30 - 10:00 น.) สามารถซื้อเพิ่มได้ท่านละ 100 บาทค่ะ 😊"
+        if "มีอะไรบ้าง" in msg or "เมนู" in msg:
+            return (
+                f"อาหารเช้าบุฟเฟต์ให้บริการเวลา 06:30 - 10:00 น. มีไข่กระทะ ไส้กรอก แฮม อาหารไทยปรุงสด สลัดบาร์ ขนมปัง กาแฟสด และน้ำผลไม้ค่ะ 😊\n"
+                f"• ห้อง Deluxe และ Grand Deluxe: รวมอาหารเช้าฟรีแล้วค่ะ\n"
+                f"• ห้อง Superior (750 บ.): ซื้อเพิ่มได้ท่านละ 100 บาทค่ะ"
+            )
         return (
             f"อาหารเช้าบุฟเฟต์ให้บริการเวลา 06:30 - 10:00 น. ค่ะ 😊\n"
             f"• ห้อง Deluxe และ Grand Deluxe: รวมอาหารเช้าฟรีแล้วค่ะ\n"
@@ -391,6 +422,8 @@ def fallback_rule_based_reply(user_message: str, chat_history: list = None) -> s
 
     # เช็คอิน เช็คเอาท์
     elif any(w in msg for w in ["เช็คอิน", "เช็คเอาท์", "เช็กอิน", "เช็กเอาต์", "check in", "check out", "เวลา"]):
+        if any(w in msg for w in ["ก่อนเวลา", "เช้ามืด", "เช้าตรู่", "เลท", "late", "early", "ฝากกระเป๋า"]):
+            return "เวลาเช็กอินปกติตั้งแต่ 14:00 น. และเช็กเอาต์ก่อน 12:00 น. ค่ะ หากต้องการเช็กอินก่อนเวลาหรือฝากกระเป๋า รบกวนสอบถามกับเจ้าหน้าที่ทาง LINE OA: @ihotelkk เพื่อตรวจสอบความพร้อมของห้องในวันเข้าพักได้เลยนะคะ 😊"
         return "เวลาเช็กอินตั้งแต่ 14:00 น. และเช็กเอาต์ก่อน 12:00 น. ค่ะ แผนกต้อนรับเปิดบริการ 24 ชั่วโมงค่ะ 😊"
 
     # ช่องทางติดต่อ / พนักงาน
